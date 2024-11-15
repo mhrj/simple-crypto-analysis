@@ -3,8 +3,10 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QTextEdit, QHBoxLayout, QFrame, QSizePolicy,QPushButton
 )
 from PyQt5.QtChart import QChart, QChartView, QPieSeries
-from PyQt5.QtGui import QPainter, QFont, QIcon, QColor,QRegion, QPainterPath
+from PyQt5.QtGui import QPainter, QFont, QIcon, QColor,QRegion, QPainterPath,QPixmap
 from PyQt5.QtCore import Qt, QMargins,QRectF
+import pyRserve
+import os
 
 class HomeTab(QWidget):
     def __init__(self):
@@ -201,17 +203,69 @@ class HomeTab(QWidget):
 
         return news_label, news_feed
     
+
+
 class BitcoinTab(QWidget):
     def __init__(self):
         super().__init__()
 
-        # Set background color for Bitcoin Tab
-        self.setStyleSheet("background-color: #FF9900;")  # Bitcoin color
-
+        # Set layout for the tab
         layout = QVBoxLayout()
-        layout.addWidget(QLabel("Bitcoin Tab"))
-        # Add relevant content for Bitcoin Tab here (like charts, tables, etc.)
+        layout.addWidget(QLabel("Bitcoin Price Charts"))
+
+        # Generate and load the R chart
+        chart_path = self.create_r_chart()
+        if chart_path:
+            chart_label = QLabel()
+            chart_label.setPixmap(QPixmap(chart_path))
+            layout.addWidget(chart_label)
+        else:
+            error_label = QLabel("Failed to generate chart.")
+            layout.addWidget(error_label)
+
         self.setLayout(layout)
+
+    def create_r_chart(self):
+        """Generate a chart using R via PyRserve and return its file path."""
+        directory = os.getcwd()
+        chart_path = os.path.join(directory,"graphs","r_generated_chart.png").replace("\\", "/")
+
+        # Connect to Rserve manually
+        try:
+            conn = pyRserve.connect(host='localhost', port=6315)  # Replace 6312 with your custom port number
+
+            # Define the R script
+            r_script = f"""
+                library(ggplot2)
+                dir.create(dirname("{chart_path}"), showWarnings = FALSE)
+                data <- data.frame(
+                time = 1:100,
+                price = cumsum(rnorm(100, 0, 1)) + 50
+                )
+                p <- ggplot(data, aes(x = time, y = price)) +
+                geom_line(color = "blue", linewidth = 1) + 
+                labs(x = "Time", y = "Price") +
+                theme_minimal()
+                ggsave("{chart_path}",plot = p, width = 4, height = 2, dpi = 150)
+                """
+            
+            # Execute the R script using Rserve
+            conn.eval(r_script)
+            
+            # Check if the chart file was generated and exists
+            if os.path.exists(chart_path):
+                return chart_path
+            else:
+                print("Chart not found at:", chart_path)  # Debugging output
+                return None
+
+        except Exception as e:
+            print(f"Error interacting with Rserve: {e}")
+            return None
+        
+        finally:
+            # Close the Rserve connection
+            conn.close()
 
 class EthereumTab(QWidget):
     def __init__(self):

@@ -31,3 +31,6 @@ ggsave("{chart_path}",plot = p, width = 8, height = 4)
 
 if __name__ == "__main__":
     test_rserve_connection()
+    
+        #     directory = os.getcwd()
+        # chart_path = os.path.join(directory,"graphs","r_generated_chart.png").replace("\\", "/")

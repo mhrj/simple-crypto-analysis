@@ -75,7 +75,7 @@ class HomeTab(QWidget):
         """Create the cryptocurrency summary table without scroll bars and with dynamic sizing."""
         summary_label = QLabel("Top Cryptocurrencies Summary")
         summary_label.setAlignment(Qt.AlignCenter)
-        summary_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #ffdd00; text-shadow: 1px 1px 3px black;")  # Gold text
+        summary_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #ffdd00;")  # Gold text
 
         # Create table and set headers
         summary_table = QTableWidget(3, 6)
@@ -159,7 +159,7 @@ class HomeTab(QWidget):
         portfolio_layout = QVBoxLayout()
         portfolio_label = QLabel("Portfolio Distribution")
         portfolio_label.setAlignment(Qt.AlignCenter)
-        portfolio_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #ffdd00; text-shadow: 1px 1px 3px black;")  # Gold text
+        portfolio_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #ffdd00;")  # Gold text
 
         pie_chart = QPieSeries()
         pie_chart.append("Bitcoin", 40)
@@ -195,7 +195,7 @@ class HomeTab(QWidget):
         """Create news feed section."""
         news_label = QLabel("Latest Cryptocurrency News")
         news_label.setAlignment(Qt.AlignCenter)
-        news_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #ffdd00; text-shadow: 1px 1px 3px black;")  # Gold text
+        news_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #ffdd00;")  # Gold text
 
         news_feed = QTextEdit()
         news_feed.setReadOnly(True)

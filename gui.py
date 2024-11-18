@@ -1,11 +1,12 @@
 import sys
 from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QTabWidget, QWidget,QHBoxLayout,QPushButton
+    QApplication, QMainWindow, QTabWidget, QWidget, QHBoxLayout, QPushButton, QSplashScreen,QLabel,QVBoxLayout
 )
+from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve,QRectF,QPoint
+from PyQt5.QtGui import QPixmap,QPainterPath,QRegion,QPolygon,QColor
 import pyRserve
-from PyQt5.QtGui import QRegion, QPainterPath
-from PyQt5.QtCore import Qt,QRectF
-from widget_classes import home_tab,bitcoin_tab,ethereum_tab,binance_tab
+from widget_classes import home_tab, bitcoin_tab, ethereum_tab, binance_tab
+import os
 
 class CryptoApp(QMainWindow):
     def __init__(self):
@@ -50,6 +51,9 @@ class CryptoApp(QMainWindow):
         # Create custom window control buttons (Close, Minimize, Maximize)
         self.create_window_controls()
 
+        # Show splash screen before the main window
+        show_splash_screen_with_animation()
+
     def create_window_controls(self):
         """Create custom buttons for close, minimize, and maximize."""
         close_button = QPushButton("")
@@ -70,7 +74,7 @@ class CryptoApp(QMainWindow):
         """)
         close_button.clicked.connect(self.close)  # Close button action
 
-        minimize_button = QPushButton("")
+        minimize_button = QPushButton("-")
         minimize_button.setStyleSheet("""
             QPushButton {
                 background-color: #ffbb33;
@@ -118,6 +122,16 @@ class CryptoApp(QMainWindow):
         controls_widget.setGeometry(self.width() - 90, 0, 140, 50)  # Position in the top-right corner
         controls_widget.setStyleSheet("background: transparent;")  # Make sure the background is transparent for the buttons to show
 
+    def fade_out_splash(self, splash):
+        """Fade out the splash screen and close it."""
+        fade_out_animation = QPropertyAnimation(splash, b"windowOpacity")
+        fade_out_animation.setDuration(1000)  # Duration of the fade-out (in ms)
+        fade_out_animation.setStartValue(1)  # Start opacity
+        fade_out_animation.setEndValue(0)  # End opacity
+        fade_out_animation.setEasingCurve(QEasingCurve.InOutQuad)  # Smooth fade
+        fade_out_animation.finished.connect(splash.close)  # Close the splash screen after animation
+        fade_out_animation.start()
+
     def toggle_maximize(self):
         """Toggle between maximize and restore."""
         if self.isMaximized():
@@ -149,12 +163,89 @@ class CryptoApp(QMainWindow):
         # Convert QRect to QRectF to ensure compatibility with addRoundedRect
         rectF = QRectF(self.rect())  # Convert to QRectF (floating-point rectangle)
         path.addRoundedRect(rectF, 20, 20)  # Apply rounded corners with 20px radius
-        mask = QRegion(path.toFillPolygon().toPolygon())  # Create mask from path
+    
+        # Convert QPolygonF to QPolygon by converting QPointF to QPoint
+        polygon = QPolygon([QPoint(int(point.x()), int(point.y())) for point in path.toFillPolygon()])
+    
+        # Create a QRegion using the converted QPolygon
+        mask = QRegion(polygon)
         self.setMask(mask)  # Apply the mask to the window
         super().resizeEvent(event)
+        
+
+def show_splash_screen_with_animation():
+    # Create splash screen
+    splash_pix = QPixmap(400, 300)
+    splash_pix.fill(QColor(30, 30, 30))
+    splash = QSplashScreen(splash_pix, Qt.WindowStaysOnTopHint)
+
+    # Set up container and layout
+    container = QWidget(splash)
+    container.setGeometry(0, 0, 400, 300)
+    layout = QVBoxLayout(container)
+
+    # Top text label
+    text_label = QLabel("Crypto Analysis \n kiau cs group", container)
+    text_label.setStyleSheet("background-color: #1a1b2f;font-size: 25px; color: white; border-radius: 10px;border-top: 3px solid #008080;")
+    text_label.setAlignment(Qt.AlignCenter)
+    layout.addWidget(text_label)
+
+    # Bottom image label
+    image_label = QLabel(container)
+    image_label.setStyleSheet("background-color: #1a1b2f; border-radius: 10px;border-bottom: 3px solid #008080;")
+    image_label.setAlignment(Qt.AlignCenter)
+    layout.addWidget(image_label)
+
+    # Directory for images
+    directory = os.getcwd()
+    image_dir = os.path.join(directory, "splash_icons")
+    if not os.path.exists(image_dir):
+        print(f"Error: The directory '{image_dir}' does not exist!")
+        return
+
+    image_files = sorted(os.listdir(image_dir))
+    if not image_files:
+        print(f"Error: No image files found in '{image_dir}'!")
+        return
+
+    current_image_index = 0
+
+    def update_image():
+        nonlocal current_image_index
+        
+        image_path = os.path.join(image_dir, image_files[current_image_index])
+        pixmap = QPixmap(image_path)
+
+        if pixmap.isNull():
+            print(f"Error: Failed to load image '{image_path}'!")
+            return
+
+        image_label.setPixmap(pixmap.scaled(200, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        current_image_index = (current_image_index + 1) % len(image_files)
+
+    update_image()
+    # Timer setup
+    image_timer = QTimer()
+    image_timer.timeout.connect(update_image)
+    image_timer.start(1000)
+
+    splash.show()
+
+    QTimer.singleShot(3000, lambda: (image_timer.stop(), splash.close()))
+
+    return splash
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
+    # Show splash screen
+    splash = show_splash_screen_with_animation()
+
+    # Create the main window after splash screen
     window = CryptoApp()
-    window.show()
+
+    # Wait for the splash screen to close before showing the main window
+    QTimer.singleShot(3000, window.show)  # Delay main window appearance until splash fades out
+
     sys.exit(app.exec_())

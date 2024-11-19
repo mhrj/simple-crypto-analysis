@@ -5,12 +5,14 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve,QRectF,QPoint
 from PyQt5.QtGui import QPixmap,QPainterPath,QRegion,QPolygon,QColor
 import pyRserve
-from widget_classes import home_tab, bitcoin_tab, ethereum_tab, binance_tab
+from widget_classes import home_tab, bitcoin_tab, ethereum_tab, binance_tab,portfolio_notification_tab
 import os
 
 class CryptoApp(QMainWindow):
     def __init__(self):
         super().__init__()
+        
+        conn = pyRserve.connect(host='localhost', port=6312)
 
         # Remove the default window frame
         self.setWindowFlags(Qt.FramelessWindowHint)
@@ -36,15 +38,24 @@ class CryptoApp(QMainWindow):
             QTabBar::tab:hover { background-color: #2d2f3e; }
         """)
         self.setCentralWidget(self.tabs)
-
-        # Add the home tab
+        
+        # Create and set tabs
         self.home_tab = home_tab.HomeTab()
         self.tabs.addTab(self.home_tab, "Home")
-        conn = pyRserve.connect(host='localhost', port=6312)
-        self.tabs.addTab(bitcoin_tab.BitcoinTab(conn), "Bitcoin")
-        self.tabs.addTab(ethereum_tab.EthereumTab(conn), "Ethereum")
-        self.tabs.addTab(binance_tab.BinanceTab(conn), "Binance Coin")
-
+        
+        self.bitcoin_tab = bitcoin_tab.BitcoinTab(conn)
+        self.tabs.addTab(self.bitcoin_tab, "Bitcoin")
+        
+        self.ethereum_tab = ethereum_tab.EthereumTab(conn)
+        self.tabs.addTab(self.ethereum_tab, "Ethereum")
+        
+        self.binance_tab = binance_tab.BinanceTab(conn)
+        self.tabs.addTab(self.binance_tab, "Binance Coin")
+        
+        self.portfolio_notifications_tab = portfolio_notification_tab.PortfolioNotificationTab()
+        self.tabs.addTab(self.portfolio_notifications_tab, "Portfolio Notifications")
+        
+        
         # Initialize variables for dragging
         self._drag_pos = None
 

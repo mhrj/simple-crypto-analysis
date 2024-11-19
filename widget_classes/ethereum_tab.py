@@ -244,7 +244,6 @@ class EthereumTab(QWidget):
                 color: #00bfa6;
                 font-weight: bold;
                 border: 1px solid #ffdd00;
-                padding: 10px;
                 border-bottom: 1px solid #ffdd00;
                 outline: none;
             }

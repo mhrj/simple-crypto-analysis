@@ -2,8 +2,8 @@ import sys
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QTextEdit, QHBoxLayout, QFrame, QSizePolicy
 )
-from PyQt5.QtChart import QChart, QChartView, QPieSeries
-from PyQt5.QtGui import QPainter, QFont, QColor
+from PyQt5.QtChart import QChart, QChartView, QPieSeries,QPieSlice
+from PyQt5.QtGui import QPainter, QFont, QColor,QBrush
 from PyQt5.QtCore import Qt, QMargins
 
 
@@ -156,40 +156,54 @@ class HomeTab(QWidget):
 
     def create_portfolio_layout(self):
         """Create portfolio distribution layout."""
-        portfolio_layout = QVBoxLayout()
+        portfolio_layout = QHBoxLayout()  # Switch to horizontal layout
+
+        # Portfolio Label
         portfolio_label = QLabel("Portfolio Distribution")
         portfolio_label.setAlignment(Qt.AlignCenter)
         portfolio_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #ffdd00;")  # Gold text
 
+        # Pie Chart
         pie_chart = QPieSeries()
         pie_chart.append("Bitcoin", 40)
         pie_chart.append("Ethereum", 30)
         pie_chart.append("Others", 30)
 
+        # Customize Pie Chart Text to White
+        for slice in pie_chart.slices():
+            slice.setLabelVisible(True)
+            slice.setLabelColor(QColor("white"))
+            slice.setLabelPosition(QPieSlice.LabelOutside)
+
+        # Chart
         chart = QChart()
         chart.addSeries(pie_chart)
         chart.setTitle("Portfolio Distribution")
+        chart.setTitleBrush(QBrush(QColor("white")))  # Set chart title color to white
         chart.setBackgroundBrush(QColor(26, 27, 47, 0))  # Transparent background
         chart.setMargins(QMargins(0, 0, 0, 0))
 
-        # Customize chart to fit the content
-        chart.legend().setVisible(True)
-        chart.legend().setAlignment(Qt.AlignBottom)
+        # Customize Legend Text Color
+        legend = chart.legend()
+        legend.setVisible(True)
+        legend.setAlignment(Qt.AlignRight)
+        for marker in legend.markers():
+            marker.setBrush(QBrush(QColor("white")))
+            marker.setLabelBrush(QBrush(QColor("white")))
 
+        # Chart View
         chart_view = QChartView(chart)
         chart_view.setRenderHint(QPainter.Antialiasing)
         chart_view.setStyleSheet("background-color: #1a1b2f; border-radius: 10px; border: 1px solid #00bfa6;")
-
-        # Set the width to expand and height to be fixed based on content
-        chart_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        chart_view.setMinimumWidth(500)
-        chart_view.setFixedHeight(300)
+        chart_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         chart_view.setContentsMargins(0, 0, 0, 0)
 
+        # Add Widgets to Layout (Left to Right)
         portfolio_layout.addWidget(portfolio_label)
         portfolio_layout.addWidget(chart_view)
 
         return portfolio_layout
+
 
     def create_news_feed(self):
         """Create news feed section."""

@@ -130,7 +130,7 @@ class CryptoApp(QMainWindow):
         # Create a container widget for the buttons and position it
         controls_widget = QWidget(self)
         controls_widget.setLayout(controls_layout)
-        controls_widget.setGeometry(self.width() - 90, 0, 140, 50)  # Position in the top-right corner
+        controls_widget.setGeometry(self.width() - 140, 0, 140, 50)  # Position in the top-right corner
         controls_widget.setStyleSheet("background: transparent;")  # Make sure the background is transparent for the buttons to show
 
     def fade_out_splash(self, splash):

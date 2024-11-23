@@ -1,10 +1,14 @@
 import os
+import pandas as pd
 from PyQt5.QtWidgets import (
-   QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QTextEdit, QHBoxLayout, QFrame
+    QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QTextEdit, QHBoxLayout, QFrame
 )
-from PyQt5.QtGui import QFont,QPixmap
+from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 from widget_classes.helper import Helper
+import plotly.io as pio
+import plotly.graph_objects as go
 
 
 class BinanceTab(QWidget):
@@ -20,7 +24,7 @@ class BinanceTab(QWidget):
         layout.setSpacing(20)
 
         layout.addLayout(self.create_summary_widget())  # Add key metrics
-        layout.addWidget(self.add_price_chart())  # Add price chart
+        layout.addWidget(self.add_charts())  # Add price chart
         layout.addLayout(self.create_bottom_section())  # Add bottom section
 
         self.setLayout(layout)
@@ -68,52 +72,12 @@ class BinanceTab(QWidget):
         self.highest_price_label.setText(f"Highest Price: ${highest_price:.2f}")
         self.lowest_price_label.setText(f"Lowest Price: ${lowest_price:.2f}")
 
-    def add_price_chart(self):
-        """Generate and display the R-generated price chart inside a bordered frame."""
-        chart_path = self.create_r_chart()
-        chart_label = QLabel()
-
-        if chart_path:
-            chart_label.setPixmap(QPixmap(chart_path))
-            chart_label.setAlignment(Qt.AlignCenter)
-        else:
-            chart_label.setText("Failed to generate chart.")
-            chart_label.setStyleSheet("color: red; font-size: 16px;")
-            chart_label.setAlignment(Qt.AlignCenter)
-
-        # Create a frame to wrap the chart
-        frame = self.create_frame_with_chart(chart_label)
-        return frame
-
-    def create_frame_with_chart(self, chart_label):
-        """Create a frame with a chart label."""
-        frame = QFrame()
-        frame.setStyleSheet("""
-            QFrame {
-                border: 2px solid #00bfa6;
-                border-radius: 10px;
-                background-color: #1f2235;
-                margin-top: 20px;
-            }
-        """)
-
-        frame_layout = QVBoxLayout()
-        frame_layout.setContentsMargins(10, 10, 10, 10)
-        frame_layout.addWidget(chart_label)
-        frame.setLayout(frame_layout)
-
-        return frame
-
-    def create_r_chart(self):
-        """Generate a chart using R via PyRserve and return its file path."""
-        chart_path = Helper.create_chart_path("binance_price_chart.png")
+    def create_r_data_direct(self):
+        """Generate data using R and return it as two Pandas DataFrames."""
         try:
-            conn = self.conn
-            
-            r_script = f"""
-                library(ggplot2)
+            r_script = """
                 library(dplyr)
-                dir.create(dirname("{chart_path}"), showWarnings = FALSE)
+                library(zoo)
 
                 data <- data.frame(
                     time = 1:100,
@@ -126,37 +90,153 @@ class BinanceTab(QWidget):
                         SMA_20 = zoo::rollmean(price, 20, fill = NA)
                     )
 
-                p <- ggplot(data, aes(x = time)) +
-                    geom_line(aes(y = price, color = "Price"), linewidth = 0.3) +
-                    geom_line(aes(y = SMA_10, color = "10-Day SMA"), linetype = "dashed", linewidth = 0.3) +
-                    geom_line(aes(y = SMA_20, color = "20-Day SMA"), linetype = "dotted", linewidth = 0.3) +
-                    geom_point(data = data.frame(time = c(20, 50, 80), price = c(52, 48, 54)),
-                            aes(x = time, y = price), color = "red", size = 3) +
-                    labs(x = "Time", y = "Price") +
-                    scale_color_manual(values = c("Price" = "blue", "10-Day SMA" = "green", "20-Day SMA" = "purple")) +
-                    theme_minimal(base_family = "Arial") +
-                    theme(
-                        axis.text.x = element_text(color = "white", size = 10),
-                        axis.text.y = element_text(color = "white", size = 10),
-                        axis.title.x = element_text(color = "white", size = 12, face = "bold"),
-                        axis.title.y = element_text(color = "white", size = 12, face = "bold"),
-                        plot.title = element_text(color = "white", size = 14, face = "bold", hjust = 0.5),
-                        legend.text = element_text(color = "white", size = 10),
-                        legend.title = element_text(color = "white", size = 12),
-                        panel.grid.major = element_line(color = "gray40"),
-                        panel.grid.minor = element_line(color = "gray25")
-                    )
+                events <- data.frame(
+                    time = c(20, 50, 80),
+                    price = c(52, 48, 54)
+                )
 
-                ggsave("{chart_path}", plot = p, width = 8, height = 6, dpi = 100)
-                """
+                list(data = data, events = events)
+            """
+            result = self.conn.eval(r_script)
 
+            # Convert result to dictionaries manually
+            data_dict_prices = {
+                'time': result['data'][0],  # Time data
+                'price': result['data'][1]  # Price data
+            }
 
-            conn.eval(r_script)
-            return chart_path if os.path.exists(chart_path) else None
+            data_dict_smas = {
+                'time': result['data'][0],
+                'price': result['data'][1],     # Use the same `time` index
+                'SMA_10': result['data'][2],    # SMA 10 data
+                'SMA_20': result['data'][3]     # SMA 20 data
+            }
 
+            # Create pandas DataFrames from dictionaries
+            data_df = pd.DataFrame(data_dict_prices)  # Data for price chart
+            events_df = pd.DataFrame(data_dict_smas)  # Data for SMA chart
+            return data_df, events_df
         except Exception as e:
             print(f"Error interacting with Rserve: {e}")
-            return None
+            return None, None
+
+    def add_charts(self):
+        """Add the interactive Plotly charts."""
+        data, events = self.create_r_data_direct()
+        if data is None or events is None:
+            chart_label = QLabel("Failed to generate chart.")
+            chart_label.setStyleSheet("color: red; font-size: 16px;")
+            chart_label.setAlignment(Qt.AlignCenter)
+            return chart_label
+
+        # Create the two charts
+        price_fig = self.create_price_chart(data)  # Price chart from data_df
+        sma_fig = self.create_sma_chart(events)    # SMA chart from events_df
+
+        # Create PyQt widgets for the charts
+        price_chart_widget = self.display_interactive_chart(price_fig)
+        sma_chart_widget = self.display_interactive_chart(sma_fig)
+        price_chart_widget.setFixedWidth(700)
+        price_chart_widget.setFixedHeight(300)
+        sma_chart_widget.setFixedHeight(300)
+        sma_chart_widget.setFixedWidth(700)
+
+        # Create a layout to hold both charts
+        chart_layout = QVBoxLayout()
+        chart_layout.addWidget(price_chart_widget)
+        chart_layout.addWidget(sma_chart_widget)
+
+        # Wrap in a frame
+        frame = QFrame()
+        frame.setLayout(chart_layout)
+        frame.setStyleSheet("""
+            QFrame {
+                border: 2px solid #00bfa6;
+                border-radius: 10px;
+                background-color: #1f2235;
+            }
+        """)
+        return frame
+
+    def create_price_chart(self, data):
+        """Create a Plotly chart for price."""
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=data['time'], y=data['price'], mode='lines', name='Price'))
+        fig.update_layout(
+            title="Price Chart",
+            xaxis_title="Time",
+            yaxis_title="Price",
+            template="plotly_dark"
+        )
+        fig.update_layout(
+            template="plotly_dark",  # Use the dark template
+            paper_bgcolor="#1f2235",  # Outer graph area background
+            plot_bgcolor="#1f2235"   # Plot area background
+        )
+        return fig
+
+    def create_sma_chart(self, events):
+        """Create a Plotly chart for SMA and events."""
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=events['time'], y=events['SMA_10'], mode='lines', name='10-Day SMA', line=dict(dash='dash',width=1)))
+        fig.add_trace(go.Scatter(x=events['time'], y=events['SMA_20'], mode='lines', name='20-Day SMA', line=dict(dash='dot')))
+        fig.add_trace(go.Scatter(x=events['time'], y=events['price'], mode='markers', name='Important Events', marker=dict(color='red', size=5)))
+        fig.update_layout(
+            title="SMA and Important Events",
+            xaxis_title="Time",
+            yaxis_title="Price",
+            template="plotly_dark"
+        )
+        fig.update_layout(
+            template="plotly_dark",  # Use the dark template
+            paper_bgcolor="#1f2235",  # Outer graph area background
+            plot_bgcolor="#1f2235"   # Plot area background
+        )
+        return fig
+
+    def display_interactive_chart(self, fig):
+        """Display an interactive Plotly chart."""
+        # This function assumes you are using Plotly to embed the chart in a PyQt widget.
+        # The implementation will depend on how you are embedding the chart.
+        html_content = pio.to_html(fig, full_html=False,include_plotlyjs='cdn')
+        custom_html = f"""
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Styled Plotly Graph</title>
+                <style>
+                    body {{
+                        margin: 0;
+                        padding: 0;
+                        background-color: #1f2235;
+                        color: white;
+                        font-family: Arial, sans-serif;
+                        display: flex;
+                        height: 100vh;
+                        width: 100vw;
+                        overflow: hidden;
+                    }}
+                    .plotly-graph-div {{
+                        width: 100%;
+                        height: 100%;
+                        background-color: #1f2235;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        }}
+                </style>
+            </head>
+            <body>
+                {html_content}
+            </body>
+            </html>
+                    """
+        webview = QWebEngineView()
+        webview.setHtml(custom_html)
+        return webview
+
 
     def create_bottom_section(self):
         """Create the bottom section with daily returns, sentiment analysis, and correlation matrix."""

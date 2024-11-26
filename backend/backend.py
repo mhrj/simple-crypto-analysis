@@ -152,6 +152,9 @@ def fetch_daily_growth(coin: str, currency: str = "USD") -> Dict[str, float]:
 
 # Helper for time span
 def from_to_date(days=30):
+    """
+    Calculates the date range (from_date and to_date) based on the current date and the number of past days.
+    """
     today = datetime.now()
     from_date = (today - timedelta(days=days)).strftime('%Y-%m-%d')
     to_date = today.strftime('%Y-%m-%d')
@@ -159,6 +162,9 @@ def from_to_date(days=30):
 
 # Fetching news from NewsAPI
 def fetch_news_newsapi(query, days=30):
+    """
+    Fetches news articles related to the query from NewsAPI and returns their headlines.
+    """
     from_to = from_to_date(days)
 
     newsapi = NewsApiClient(api_key=NEWS_API_KEY)
@@ -175,6 +181,9 @@ def fetch_news_newsapi(query, days=30):
 
 # Fetching news from Currents API
 def fetch_news_currents(query, days=30):
+    """
+    Fetches news articles related to the query from currents API and returns their headlines.
+    """
     url = f"https://api.currentsapi.services/v1/search"
     params = {
         'apiKey': CURRENTS_API_KEY,
@@ -190,6 +199,9 @@ def fetch_news_currents(query, days=30):
 
 # Fetching news from GNews API
 def fetch_news_gnews(query, days=30):
+    """
+    Fetches news articles related to the query from gnews API and returns their headlines.
+    """
     url = f"https://gnews.io/api/v4/search"
     params = {
         'q': query,
@@ -205,6 +217,9 @@ def fetch_news_gnews(query, days=30):
 
 # Fetching Reddit posts
 def fetch_news_reddit(query, days=30):
+    """
+    Fetches subreddits related to the query from reddit API and returns their headlines.
+    """
     reddit = praw.Reddit(client_id=REDDIT_CLIENT_ID,
                          client_secret=REDDIT_CLIENT_SECRET,
                          user_agent=REDDIT_USER_AGENT)
@@ -215,6 +230,9 @@ def fetch_news_reddit(query, days=30):
 
 # Function to combine all news sources
 def fetch_all_news(query, days=30):
+    """
+    Combines news headlines from multiple sources (NewsAPI, Currents, GNews, and Reddit).
+    """
     news_data = pd.DataFrame()
 
     # Fetch news from all sources
@@ -230,6 +248,17 @@ def fetch_all_news(query, days=30):
 # Front calling function
 # Function to calculate sentiment score
 def calculate_sentiment_score(coin_name):
+    """
+    Fetches news related to the query to calculate the overall sentiment score.
+    Variables to fill:
+    - query: The topic for which sentiment needs to be calculated (e.g., "Bitcoin").
+    Process:
+    - Fetch news headlines related to the query from NewsAPI.
+    - Send the data to R for sentiment analysis using the 'syuzhet' library.
+    Return value:
+    - A float representing the overall sentiment score for the given query.
+      Example: 0.45 (positive sentiment) or -0.3 (negative sentiment).
+    """
     news_data = fetch_all_news(coin_name)
     if news_data.empty:
         return None
@@ -249,6 +278,18 @@ def calculate_sentiment_score(coin_name):
 # Front calling function
 # Function to calculate sentiment distribution
 def calculate_sentiment_distribution(coin_name):
+    """
+    Fetches news related to the query to calculate sentiment distribution (positive, negative, neutral).
+    Variables to fill:
+    - query: The topic for which sentiment distribution needs to be calculated (e.g., "Bitcoin").
+    Process:
+    - Fetch news headlines related to the query from NewsAPI.
+    - Send the data to R for detailed sentiment classification using the 'syuzhet' library.
+    - Calculate the percentage of positive, negative, and neutral sentiments.
+    Return value:
+    - A dictionary with sentiment distribution percentages.
+      Example: {"Positive": 60.0, "Negative": 25.0, "Neutral": 15.0}.
+    """
     news_data = fetch_all_news(coin_name)
     if news_data.empty:
         return {"positive": 0, "neutral": 0, "negative": 0}
@@ -286,3 +327,4 @@ def calculate_sentiment_distribution(coin_name):
     }
 
     return sentiment_distribution_dict
+

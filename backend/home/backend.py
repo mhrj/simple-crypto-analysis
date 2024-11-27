@@ -88,3 +88,64 @@ def fetch_market_summary():
         "volume_24h_usd": volume_24h_usd,
         "top_gainer": {"coin": top_gainer_coin, "change": top_gainer_change},
     }
+
+def fetch_news_data(query, limit, api_key):
+    """
+    Fetch news data from the NewsAPI.
+    Args:
+        query (str): The search query for news articles.
+        limit (int): The number of articles to fetch.
+        api_key (str): Your NewsAPI API key.
+    Returns:
+        dict: A dictionary containing raw API response data or an error message.
+    """
+    url = "https://newsapi.org/v2/everything"
+    params = {
+        "q": query,
+        "language": "en",
+        "pageSize": limit,
+        "apiKey": api_key
+    }
+
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        return {"error": f"API Request failed: {e}"}
+
+def format_news_articles(raw_data, limit):
+    """
+    Format raw news API data into a list of article dictionaries.
+    Args:
+        raw_data (dict): The raw API response data.
+        limit (int): The maximum number of articles to include in the result.
+    Returns:
+        list: A list of dictionaries with article details.
+    """
+    articles = raw_data.get("articles", [])
+    news_list = []
+
+    for article in articles[:limit]:
+        news_list.append({
+            "title": article.get("title", "No title"),
+            "description": article.get("description", "No description"),
+            "url": article.get("url", "No URL"),
+            "published_at": article.get("publishedAt", "Unknown Date")
+        })
+
+    return news_list
+
+def fetch_latest_general_crypto_news(limit=5, api_key="fbf8172bf41c423f8667eb92b88cc692"):
+    """
+    Fetch the latest general cryptocurrency news.
+    Args:
+        limit (int): The number of latest news articles to fetch. Default is 5.
+        api_key (str): Your NewsAPI API key.
+    Returns:
+        list: A list of dictionaries containing the latest general crypto news or an error message.
+    """
+    raw_data = fetch_news_data("cryptocurrency", limit, api_key)
+    if "error" in raw_data:
+        return [{"error": raw_data["error"]}]  # Return the error message in a list
+    return format_news_articles(raw_data, limit)

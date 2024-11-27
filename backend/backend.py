@@ -2,18 +2,13 @@ import requests
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, List
-import pandas as pd
 import pyRserve
-from datetime import datetime, timedelta
-import requests
 from newsapi import NewsApiClient
 import praw
-import pandas as pd
 
 # Constants
 CRYPTOCOMPARE_BASE_URL = "https://min-api.cryptocompare.com/data/v2"
 CRYPTOCOMPARE_API_KEY = "2ade0bdf98ef9e6f719bee6b0e58bf88497fdaaa1dc7e3948347ba1d65304981"
-# Constants
 # Replace with your NewsAPI key
 NEWS_API_KEY = "fbf8172bf41c423f8667eb92b88cc692"
 # Replace with your Currents API key
@@ -35,6 +30,27 @@ def get_request(url: str, params: Dict[str, str]) -> Dict:
         return response.json()
     except requests.exceptions.RequestException as e:
         raise RuntimeError(f"Error making request to {url}: {e}")
+
+# Front calling function
+# Function to fetch current price of a coin
+def get_current_price(coin: str, currency: str = "USD") -> float:
+    """
+    Fetches the current price of the specified cryptocurrency.
+    Variables to fill:
+    - coin (str): The cryptocurrency symbol. Example: "BTC"
+    - currency (str, optional): The fiat currency. Default is "USD". Example: "EUR"
+    Return value:
+    - A float representing the current price of the cryptocurrency in the specified fiat currency.
+      Example: 50000.0
+    """
+    url = f"https://min-api.cryptocompare.com/data/price"
+    params = {
+        "fsym": coin.upper(),
+        "tsyms": currency.upper(),
+        "api_key": CRYPTOCOMPARE_API_KEY,
+    }
+    data = get_request(url, params)
+    return data.get(currency.upper(), 0.0)
 
 # Function to fetch data for top table of each coin
 def fetch_crypto_data(coin: str, currency: str = "USD") -> Dict[str, float]:
@@ -60,8 +76,12 @@ def fetch_crypto_data(coin: str, currency: str = "USD") -> Dict[str, float]:
         raise RuntimeError(f"Error fetching data: {data.get('Message', 'Unknown error')}")
     
     prices = [day["close"] for day in data["Data"]["Data"]]
+    
+    # Get current price using the new function
+    current_price = get_current_price(coin, currency)
+    
     return {
-        "current_price": prices[-1],
+        "current_price": current_price,
         "highest": max(prices),
         "lowest": min(prices),
         "average": sum(prices) / len(prices),
@@ -328,3 +348,49 @@ def calculate_sentiment_distribution(coin_name):
 
     return sentiment_distribution_dict
 
+# Front calling function
+# Fetch data for price over time graph
+def fetch_crypto_prices(coin: str, currency: str = "USD", limit: int = 60) -> Dict:
+    """
+    Fetches price data for a given cryptocurrency.
+    Parameters:
+    - coin (str): Cryptocurrency symbol (e.g., "BTC").
+    - currency (str): Fiat currency symbol (e.g., "USD"). Default is "USD".
+    - limit (int): Number of data points to fetch. Default is 60.
+    Process:
+    - Fetch historical minute-level price data using CryptoCompare's API.
+    - Extract the 'time' and 'close' (price) values from the API response.
+    - If `limit=1`, return a single timestamp and price.
+    - If `limit>1`, return lists of timestamps and prices.
+    Returns:
+    - Dictionary containing 'time' and 'price'. For limit=1, returns single values.
+      Example (limit=60): {'time': [...], 'price': [...]}
+      Example (limit=1): {'time': <int>, 'price': <float>}
+    """
+    url = f"{CRYPTOCOMPARE_BASE_URL}/histominute"
+    params = {
+        "fsym": coin.upper(),
+        "tsym": currency.upper(),
+        "limit": limit,
+        "api_key": CRYPTOCOMPARE_API_KEY,
+    }
+
+    # API request and error handling
+    response = get_request(url, params)
+    if response.get("Response") != "Success":
+        raise RuntimeError(f"Error fetching data: {response.get('Message', 'Unknown error')}")
+
+    # Extract relevant data
+    data = response["Data"]["Data"]
+    time_data, price_data = zip(*((entry["time"], entry["close"]) for entry in data))
+
+    # Return single entry if limit=1, otherwise full lists
+    if limit == 1:
+        return {
+            "time": time_data[-1],
+            "price": price_data[-1]
+        }
+    return {
+        "time": list(time_data), 
+        "price": list(price_data)
+    }

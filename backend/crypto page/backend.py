@@ -394,3 +394,120 @@ def fetch_crypto_prices(coin: str, currency: str = "USD", limit: int = 60) -> Di
         "time": list(time_data), 
         "price": list(price_data)
     }
+
+# Helper fetch data for indicators
+def fetch_crypto_data(symbol, api_key, currency='USD', limit=100, interval='day'):
+    """
+    Fetch historical price data for a cryptocurrency from CryptoCompare.
+    """
+    url = f"https://min-api.cryptocompare.com/data/v2/histo{interval}"
+    params = {
+        'fsym': symbol,
+        'tsym': currency,
+        'limit': limit,
+        'api_key': api_key
+    }
+    try:
+        response = requests.get(url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        
+        prices = [point['close'] for point in data['Data']['Data']]
+        timestamps = [datetime.utcfromtimestamp(point['time']).isoformat() for point in data['Data']['Data']]
+        
+        return {'prices': prices, 'timestamps': timestamps}
+    except Exception as e:
+        print(f"Error fetching data: {e}")
+        return None
+
+# Helper cut nan values
+def cut_nans(data_dict):
+    """
+    Remove leading NaN values from the data dictionary.
+    """
+    max_nans = 0
+    for key, value in data_dict.items():
+        if isinstance(value, dict):
+            for sub_key, sub_value in value.items():
+                max_nans = max(max_nans, len([v for v in sub_value if pd.isna(v)]))
+        else:
+            max_nans = max(max_nans, len([v for v in value if pd.isna(v)]))
+    
+    cut_data = {'timestamps': data_dict['timestamps'][max_nans:]}
+    for key, value in data_dict.items():
+        if isinstance(value, dict):
+            cut_data[key] = {sub_key: sub_value[max_nans:] for sub_key, sub_value in value.items()}
+        else:
+            cut_data[key] = value[max_nans:]
+    return cut_data
+
+# Helper function to calculate indicators using R
+def calculate_indicators(data, timestamps, ema_period=14, sma_period=14, rsi_period=14, macd_params=(12, 26, 9)):
+    """
+    Calculate EMA, SMA, RSI, and MACD using R via PyRserve.
+    """
+    try:
+        conn = pyRserve.connect("localhost", 6312)
+        
+        conn.r.data = data
+        conn.r.ema_period = ema_period
+        conn.r.sma_period = sma_period
+        conn.r.rsi_period = rsi_period
+        conn.r.macd_fast = macd_params[0]
+        conn.r.macd_slow = macd_params[1]
+        conn.r.macd_signal = macd_params[2]
+
+        r_script = """
+        library(TTR)
+        data <- as.numeric(data)
+        ema <- EMA(data, n=ema_period)
+        sma <- SMA(data, n=sma_period)
+        rsi <- RSI(data, n=rsi_period)
+        macd_matrix <- MACD(data, nFast=macd_fast, nSlow=macd_slow, nSig=macd_signal)
+        macd <- list(
+            macd = macd_matrix[, "macd"],
+            signal = macd_matrix[, "signal"]
+        )
+        list(
+            ema = ema,
+            sma = sma,
+            rsi = rsi,
+            macd = macd
+        )
+        """
+        indicators = conn.r(r_script)
+        
+        result = {
+            'timestamps': timestamps,
+            'EMA': list(indicators['ema']),
+            'SMA': list(indicators['sma']),
+            'RSI': list(indicators['rsi']),
+            'MACD': {
+                'MACD': list(indicators['macd']['macd']),
+                'Signal': list(indicators['macd']['signal'])
+            }
+        }
+        return cut_nans(result)
+    except Exception as e:
+        if 'conn' in locals():
+            conn.close()
+        print(f"Error calculating indicators: {e}")
+        return None
+
+# Front caliing function
+def get_crypto_data_with_indicators(symbol, currency='USD', limit=100, interval='day', 
+                                     ema_period=14, sma_period=14, rsi_period=14, 
+                                     macd_params=(12, 26, 9), api_key=CRYPTOCOMPARE_API_KEY):
+    """
+    Fetch historical price data for a cryptocurrency and calculate indicators.
+    """
+    data = fetch_crypto_data(symbol, api_key, currency, limit, interval)
+    if not data:
+        return None
+    
+    prices = data['prices']
+    timestamps = data['timestamps']
+    prices = [price for price in prices if isinstance(price, (int, float)) and price is not None]
+    
+    indicators = calculate_indicators(prices, timestamps, ema_period, sma_period, rsi_period, macd_params)
+    return indicators

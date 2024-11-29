@@ -2,6 +2,7 @@ import os
 import sys
 import pyRserve
 import pandas as pd
+from datetime import datetime
 from typing import Dict, List, Union
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(parent_dir)
@@ -86,6 +87,51 @@ class CryptoAnalysis:
         
         # Return the correlation matrix as a dictionary
         return correlation_matrix.to_dict()
+
+    def calculate_daily_growth(coin_id: str, vs_currency: str = "USD") -> Dict:
+        """
+        Calculate the percentage growth of a cryptocurrency over the last three days, including the dates.
+
+        Args:
+            coin_id (str): The cryptocurrency symbol (e.g., "BTC").
+            vs_currency (str): The fiat or crypto currency to compare against (default is "USD").
+            
+        Returns:
+            Dict: A dictionary with the growth percentages for each day, overall growth, and the dates.
+        """
+        base_url = "https://min-api.cryptocompare.com/data/v2/histoday"
+        params = {
+            "fsym": coin_id.upper(),
+            "tsym": vs_currency.upper(),
+            "limit": 3
+        }
+
+        # Fetch historical data
+        data = helpers.get_request(base_url, params)
+        if data.get("Response") != "Success":
+            return {"error": data.get("Message", "Unknown error")}
+        
+        # Extract the timestamps and closing prices
+        timestamps = [day["time"] for day in data["Data"]["Data"]]
+        prices = [day["close"] for day in data["Data"]["Data"]]
+
+        # Ensure we have at least 4 data points (to calculate three intervals)
+        if len(prices) < 4:
+            return {"error": "Insufficient data to calculate three-day growth"}
+
+        # Convert timestamps to dates
+        dates = [datetime.utcfromtimestamp(ts).strftime('%Y-%m-%d') for ts in timestamps]
+
+        # Calculate daily growth percentages
+        growth = []
+        for i in range(1, len(prices)):
+            day_growth = ((prices[i] - prices[i - 1]) / prices[i - 1]) * 100
+            growth.append(round(day_growth, 2))
+
+        return {
+            "dates": dates[1:],
+            "daily_growth": growth,
+        }
 
     def get_current_price(coin: str, currency: str = "USD") -> float:
         """

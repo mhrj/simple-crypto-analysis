@@ -1,9 +1,9 @@
 import os
 import sys
 from typing import Dict, List
+import helpers
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(parent_dir)
-from helpers import get_request
 from constants import CRYPTOCOMPARE_BASE_URL
 
 class CryptoMarketData:
@@ -25,7 +25,7 @@ class CryptoMarketData:
         url = f"{self.BASE_URL}/pricemultifull"
         params = {"fsyms": ",".join(coin_ids), "tsyms": vs_currency.upper()}
 
-        data = get_request(url, params)  # Use the reusable helper function
+        data = helpers.get_request(url, params)  # Use the reusable helper function
         raw_data = data.get("RAW", {})
 
         # Process each coin to extract the price
@@ -55,7 +55,7 @@ class CryptoMarketData:
         url = f"{self.BASE_URL}/pricemultifull"
         params = {"fsyms": ",".join(coin.upper() for coin in coins), "tsyms": vs_currency.upper()}
 
-        raw_data = get_request(url, params)  # Use the reusable helper function
+        raw_data = helpers.get_request(url, params)  # Use the reusable helper function
         if "RAW" not in raw_data:
             return {"error": "Failed to fetch data from CryptoCompare"}
 
@@ -69,9 +69,9 @@ class CryptoMarketData:
                     "coin": coin.upper(),
                     "current_price": coin_data.get("PRICE"),
                     "24h_change": round(coin_data.get("CHANGE24HOUR", 0), 2) if "CHANGE24HOUR" in coin_data else None,
-                    "market_cap": coin_data.get("MKTCAP"),
-                    "24h_volume": coin_data.get("TOTALVOLUME24H"),
-                    "supply": coin_data.get("SUPPLY"),
+                    "market_cap": helpers.format_large_number(round(coin_data.get("MKTCAP"), 2)),
+                    "24h_volume": helpers.format_large_number(round(coin_data.get("TOTALVOLUME24H"), 2)),
+                    "supply": helpers.format_large_number(round(coin_data.get("SUPPLY"), 2))
                 }
 
         return formatted_data

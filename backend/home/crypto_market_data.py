@@ -66,7 +66,7 @@ class CryptoMarketData:
             else:
                 formatted_data[coin.upper()] = {
                     "coin": coin.upper(),
-                    "current_price": coin_data.get("PRICE"),
+                    "current_price": round(coin_data.get("PRICE"), 2),
                     "24h_change": round(coin_data.get("CHANGE24HOUR", 0), 2) if "CHANGE24HOUR" in coin_data else None,
                     "market_cap": helpers.format_large_number(round(coin_data.get("MKTCAP"), 2)),
                     "24h_volume": helpers.format_large_number(round(coin_data.get("TOTALVOLUME24H"), 2)),

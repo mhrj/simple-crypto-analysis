@@ -29,16 +29,107 @@ class BinanceTab(QWidget):
 
         self.setLayout(layout)
 
+    def create_pie_chart_card(self):
+        """Create a card with a pie chart."""
+        card = QFrame()
+        card.setStyleSheet("background-color: #1f2235; border-radius: 10px; border: 1px solid #00bfa6; padding: 10px;")
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(5, 5, 5, 5)
+
+        # Add title
+        title_label = QLabel("Sentiment Analysis")
+        title_label.setAlignment(Qt.AlignCenter)
+        title_label.setFont(QFont("Arial", 10, QFont.Bold))
+        title_label.setStyleSheet("color: #ffdd00;")  # Gold text
+
+        # Create the pie chart using Plotly
+        chart_view = self.create_pie_chart()
+
+        layout.addWidget(title_label)
+        layout.addWidget(chart_view)
+
+        card.setLayout(layout)
+        return card
+
+    def create_pie_chart(self):
+        """Generate a pie chart using Plotly and return it as a QWebEngineView."""
+        # Example data
+        labels = ['Positive', 'Negative', 'Neutral']
+        values = [65, 20, 15]
+        colors = ['#00bfa6', '#ff6f61', '#ffbb33']
+
+        # Create Plotly pie chart
+        fig = go.Figure(data=[go.Pie(labels=labels, values=values, marker=dict(colors=colors))])
+        fig.update_layout(
+            template="plotly_dark",
+            paper_bgcolor="#1f2235",
+            font=dict(color='white'),
+            margin=dict(l=0, r=0, t=0, b=0)  # Remove margins
+        )
+
+        # Convert Plotly figure to HTML and render it in QWebEngineView
+        chart_html = fig.to_html(include_plotlyjs='cdn')
+        
+        custom_html = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            html, body {{
+                margin: 0;
+                padding: 0;
+                background-color: #1f2235;
+                color: white;
+                width: 100%;
+                height: 100%;
+                overflow: hidden; /* Disable scrolling */
+            }}
+            #graph {{
+                width: 100%;
+                height: 100%;
+            }}
+        </style>
+    </head>
+    <body>
+        <div id="graph">{chart_html}</div>
+        <script>
+            // Adjust chart size dynamically
+            window.addEventListener('resize', () => {{
+                const graphs = document.querySelectorAll('.plotly-graph-div');
+                graphs.forEach(graph => {{
+                    Plotly.relayout(graph, {{
+                        width: window.innerWidth,
+                        height: window.innerHeight
+                    }});
+                }});
+            }});
+            // Trigger resize on load
+            window.dispatchEvent(new Event('resize'));
+        </script>
+    </body>
+    </html>
+    """
+        webview = QWebEngineView()
+        webview.setAttribute(Qt.WA_TranslucentBackground, True)
+        webview.setStyleSheet("background: transparent;")
+        webview.page().setBackgroundColor(Qt.transparent)
+        webview.setHtml(custom_html)
+
+        return webview
+
     def create_summary_widget(self):
         """Create and return the layout for Key Metrics cards."""
         metrics_layout = QHBoxLayout()
         metrics = [
-            ("Current Price", "$2.5 Trillion"),
             ("Highest/Lowest price", "$130 Billion"),
             ("Average Price Over Time", "7,000+")
         ]
         for title, value in metrics:
             metrics_layout.addWidget(self.create_metric_card(title, value))
+        metrics_layout.addWidget(self.create_pie_chart_card())
         return metrics_layout
 
     def create_metric_card(self, title, value):

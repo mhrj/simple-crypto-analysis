@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(parent_dir)
 from helpers import get_request
-from constants import (NEWS_API_KEY, CURRENTS_API_KEY, REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT)
+from constants import (NEWS_API_URL, NEWS_API_KEY, CURRENTS_API_KEY, REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET, REDDIT_USER_AGENT)
 
 class NewsAggregator:
     """
@@ -35,7 +35,7 @@ class NewsAggregator:
         """
         Fetch news from NewsAPI.
         """
-        url = "https://newsapi.org/v2/everything"
+        url = NEWS_API_URL
         date_range = self._from_to_date(self.days)
         params = {
             "q": query,

@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHeaderView
 from PyQt5.QtCore import Qt
 
-class PortfolioNotificationTab(QWidget):
+class OnlineRInteraction(QWidget):
     def __init__(self):
         super().__init__()
         self.setStyleSheet("""
@@ -33,7 +33,7 @@ class PortfolioNotificationTab(QWidget):
         # Table widget to display data
         self.table = QTableWidget()
         self.table.setColumnCount(3)  # Adjust column count as needed
-        self.table.setHorizontalHeaderLabels(["Name", "Joined At", "Data Sent"])
+        self.table.setHorizontalHeaderLabels(["Name", "Command", "Output"])
         self.table.horizontalHeader().setStretchLastSection(True)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.table.verticalHeader().setVisible(False)

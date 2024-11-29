@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve,QRectF,QPoint
 from PyQt5.QtGui import QPixmap,QPainterPath,QRegion,QPolygon,QColor
 import pyRserve
-from widget_classes import home_tab, bitcoin_tab, ethereum_tab, binance_tab,portfolio_notification_tab
+from widget_classes import home_tab, bitcoin_tab, ethereum_tab, binance_tab,online_R_interaction
 import os
 
 class CryptoApp(QMainWindow):
@@ -52,7 +52,7 @@ class CryptoApp(QMainWindow):
         self.binance_tab = binance_tab.BinanceTab(conn)
         self.tabs.addTab(self.binance_tab, "Binance Coin")
         
-        self.portfolio_notifications_tab = portfolio_notification_tab.PortfolioNotificationTab()
+        self.portfolio_notifications_tab = online_R_interaction.PortfolioNotificationTab()
         self.tabs.addTab(self.portfolio_notifications_tab, "Portfolio Notifications")
         
         

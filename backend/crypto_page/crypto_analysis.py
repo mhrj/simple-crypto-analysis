@@ -130,6 +130,7 @@ class CryptoAnalysis:
             # Format results and return
             result = {
                 'timestamps': timestamps,
+                'prices': historical_data,
                 'EMA': list(indicators['ema']),
                 'SMA': list(indicators['sma']),
             }

@@ -81,24 +81,24 @@ class CryptoMarket:
             print("Error calculating top gainer.")
             return None, None
 
-    def fetch_market_summary():
+    def fetch_market_summary(self):
         """
         Fetch and summarize the global cryptocurrency market data.
         Returns:
             dict: Market summary with market cap, 24h volume, and top gainer.
         """
         # Fetch global market data
-        global_data = CryptoMarket.fetch_global_market_data()
+        global_data = self.fetch_global_market_data()
         if not global_data:
             return {"error": "Failed to fetch global market data."}
 
         # Fetch coin-specific data for BTC, ETH, and BNB
-        coins_data = CryptoMarket.fetch_coin_data()
+        coins_data = self.fetch_coin_data()
         if not coins_data:
             return {"error": "Failed to fetch coin data."}
 
         # Calculate the top gainer
-        top_gainer_coin, top_gainer_change = CryptoMarket.calculate_top_gainer(coins_data)
+        top_gainer_coin, top_gainer_change = self.calculate_top_gainer(coins_data)
 
         # Return the final summary
         return {

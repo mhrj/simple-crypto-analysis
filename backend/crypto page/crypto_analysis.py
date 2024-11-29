@@ -1,6 +1,10 @@
+import os
+import sys
 import pyRserve
 import pandas as pd
 from typing import Dict, List, Union
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(parent_dir)
 from helpers import get_request
 from constants import (CRYPTOCOMPARE_BASE_URL, CRYPTOCOMPARE_API_KEY)
 

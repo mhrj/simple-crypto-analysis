@@ -5,8 +5,8 @@ import pandas as pd
 from typing import Dict, List, Union
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(parent_dir)
-from helpers import get_request
 from constants import (CRYPTOCOMPARE_BASE_URL, CRYPTOCOMPARE_API_KEY)
+from helpers import get_request
 
 class CryptoAnalysis:
     """
@@ -68,9 +68,7 @@ class CryptoAnalysis:
         Fetches price statistics for the last 30 days for a cryptocurrency.
         """
         prices = CryptoAnalysis._fetch_historical_prices(coin, currency, 30)
-        current_price = CryptoAnalysis.get_current_price(coin, currency)
         return {
-            "current_price": current_price,
             "highest": max(prices),
             "lowest": min(prices),
             "average": sum(prices) / len(prices),
@@ -95,16 +93,16 @@ class CryptoAnalysis:
         return {"timestamps": list(time_data), "prices": list(price_data)}
 
     def calculate_indicators(coin: str, limit_days: int = 100, currency: str = "USD", calculate_for: int = 1,
-                            ema_period: int = 14, sma_period: int = 14, rsi_period: int = 14, macd_params=(12, 26, 9)) -> Union[Dict, None]:
+                            ema_period: int = 14, sma_period: int = 14) -> Union[Dict, None]:
         """
-        Calculate EMA, SMA, RSI, and MACD.
+        Calculate EMA, SMA.
         """
         try:
             # Fetch historical data for the full range
             historical_data = CryptoAnalysis._fetch_historical_prices(coin, currency, days=limit_days)
             
             # Ensure we have enough data for calculations
-            if len(historical_data) < ema_period or len(historical_data) < macd_params[1]:
+            if len(historical_data) < ema_period:
                 raise ValueError("Not enough data for the specified indicator periods.")
 
             # Extract the last `calculate_for` days of data
@@ -116,27 +114,15 @@ class CryptoAnalysis:
             conn.r.data = data_for_calculation
             conn.r.ema_period = ema_period
             conn.r.sma_period = sma_period
-            conn.r.rsi_period = rsi_period
-            conn.r.macd_fast = macd_params[0]
-            conn.r.macd_slow = macd_params[1]
-            conn.r.macd_signal = macd_params[2]
 
             r_script = """
             library(TTR)
             data <- as.numeric(data)
             ema <- EMA(data, n=ema_period)
             sma <- SMA(data, n=sma_period)
-            rsi <- RSI(data, n=rsi_period)
-            macd_matrix <- MACD(data, nFast=macd_fast, nSlow=macd_slow, nSig=macd_signal)
-            macd <- list(
-                macd = macd_matrix[, "macd"],
-                signal = macd_matrix[, "signal"]
-            )
             list(
                 ema = ema,
-                sma = sma,
-                rsi = rsi,
-                macd = macd
+                sma = sma
             )
             """
             indicators = conn.r(r_script)
@@ -146,11 +132,6 @@ class CryptoAnalysis:
                 'timestamps': timestamps,
                 'EMA': list(indicators['ema']),
                 'SMA': list(indicators['sma']),
-                'RSI': list(indicators['rsi']),
-                'MACD': {
-                    'MACD': list(indicators['macd']['macd']),
-                    'Signal': list(indicators['macd']['signal']),
-                },
             }
             return CryptoAnalysis._cut_nans(result)
         except Exception as e:

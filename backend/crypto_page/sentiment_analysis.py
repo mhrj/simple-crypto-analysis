@@ -7,11 +7,11 @@ class SentimentAnalysis:
     """
     Handles sentiment analysis for cryptocurrency-related news.
     """
-    def __init__(self, news_aggregator: NewsAggregator):
+    def __init__(self, days):
         """
         Initialize with a NewsAggregator instance.
         """
-        self.news_aggregator = news_aggregator
+        self.news_aggregator = NewsAggregator(days)
 
     @staticmethod
     def _cut_nans(data_dict: Dict) -> Dict:

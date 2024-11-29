@@ -2,7 +2,7 @@ import os
 import sys
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(parent_dir)
-from helpers import get_request
+import helpers
 from constants import (CRYPTOCOMPARE_BASE_URL, CRYPTOCOMPARE_API_KEY)
 
 class CryptoMarket:
@@ -22,7 +22,7 @@ class CryptoMarket:
             dict: Parsed global market data or None in case of failure.
         """
         params = {"limit": 10, "tsym": "USD", "api_key": self.api_key}
-        data = get_request(self.market_cap_url, params)
+        data = helpers.get_request(self.market_cap_url, params)
         if not data:
             print("Failed to fetch market cap data.")
             return None
@@ -50,7 +50,7 @@ class CryptoMarket:
             "tsyms": "USD",
             "api_key": self.api_key,
         }
-        data = get_request(self.coin_price_url, params)
+        data = helpers.get_request(self.coin_price_url, params)
         if not data:
             print("Failed to fetch coin data.")
             return None
@@ -102,7 +102,7 @@ class CryptoMarket:
 
         # Return the final summary
         return {
-            "market_cap_usd": global_data["total_market_cap_usd"],
-            "volume_24h_usd": global_data["total_24h_volume_usd"],
-            "top_gainer": {"coin": top_gainer_coin, "change": top_gainer_change},
+            "market_cap_usd": helpers.format_large_number(global_data["total_market_cap_usd"]),
+            "volume_24h_usd": helpers.format_large_number(global_data["total_24h_volume_usd"]),
+            "top_gainer": {"coin": top_gainer_coin, "change": top_gainer_change}
         }

@@ -15,14 +15,14 @@ class CryptoMarket:
         self.coin_price_url = f"{CRYPTOCOMPARE_BASE_URL}/pricemultifull"
         self.api_key = CRYPTOCOMPARE_API_KEY
 
-    def fetch_global_market_data(self):
+    def fetch_global_market_data():
         """
         Fetch global cryptocurrency market cap and 24-hour volume data.
         Returns:
             dict: Parsed global market data or None in case of failure.
         """
-        params = {"limit": 10, "tsym": "USD", "api_key": self.api_key}
-        data = helpers.get_request(self.market_cap_url, params)
+        params = {"limit": 10, "tsym": "USD", "api_key": CryptoMarket.api_key}
+        data = helpers.get_request(CryptoMarket.market_cap_url, params)
         if not data:
             print("Failed to fetch market cap data.")
             return None
@@ -39,7 +39,7 @@ class CryptoMarket:
             print("Error parsing market cap data.")
             return None
 
-    def fetch_coin_data(self):
+    def fetch_coin_data():
         """
         Fetch coin-specific data for BTC, ETH, and BNB.
         Returns:
@@ -48,9 +48,9 @@ class CryptoMarket:
         params = {
             "fsyms": "BTC,ETH,BNB",
             "tsyms": "USD",
-            "api_key": self.api_key,
+            "api_key": CryptoMarket.api_key,
         }
-        data = helpers.get_request(self.coin_price_url, params)
+        data = helpers.get_request(CryptoMarket.coin_price_url, params)
         if not data:
             print("Failed to fetch coin data.")
             return None
@@ -81,24 +81,24 @@ class CryptoMarket:
             print("Error calculating top gainer.")
             return None, None
 
-    def fetch_market_summary(self):
+    def fetch_market_summary():
         """
         Fetch and summarize the global cryptocurrency market data.
         Returns:
             dict: Market summary with market cap, 24h volume, and top gainer.
         """
         # Fetch global market data
-        global_data = self.fetch_global_market_data()
+        global_data = CryptoMarket.fetch_global_market_data()
         if not global_data:
             return {"error": "Failed to fetch global market data."}
 
         # Fetch coin-specific data for BTC, ETH, and BNB
-        coins_data = self.fetch_coin_data()
+        coins_data = CryptoMarket.fetch_coin_data()
         if not coins_data:
             return {"error": "Failed to fetch coin data."}
 
         # Calculate the top gainer
-        top_gainer_coin, top_gainer_change = self.calculate_top_gainer(coins_data)
+        top_gainer_coin, top_gainer_change = CryptoMarket.calculate_top_gainer(coins_data)
 
         # Return the final summary
         return {

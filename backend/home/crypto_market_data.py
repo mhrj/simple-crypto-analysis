@@ -37,11 +37,10 @@ class CryptoMarketData:
             else:
                 prices[coin.upper()] = {
                     "coin": coin.upper(),
-                    "current_price": coin_data.get("PRICE"),
+                    "current_price": coin_data.get("PRICE")
                 }
 
         return prices
-
 
     def fetch_crypto_data(self, coins: List[str], vs_currency: str = "USD") -> Dict:
         """

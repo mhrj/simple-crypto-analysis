@@ -3,7 +3,7 @@ import pandas as pd
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QTextEdit, QHBoxLayout, QFrame
 )
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont,QPixmap
 from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from widget_classes.helper import Helper
@@ -136,10 +136,6 @@ class EthereumTab(QWidget):
         # Create PyQt widgets for the charts
         price_chart_widget = self.display_interactive_chart(price_fig)
         sma_chart_widget = self.display_interactive_chart(sma_fig)
-        price_chart_widget.setFixedWidth(700)
-        price_chart_widget.setFixedHeight(300)
-        sma_chart_widget.setFixedHeight(300)
-        sma_chart_widget.setFixedWidth(700)
 
         # Create a layout to hold both charts
         chart_layout = QVBoxLayout()
@@ -200,41 +196,53 @@ class EthereumTab(QWidget):
         # The implementation will depend on how you are embedding the chart.
         html_content = pio.to_html(fig, full_html=False,include_plotlyjs='cdn')
         webview = QWebEngineView()
+        # Embed the HTML with dynamic resizing
         custom_html = f"""
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Styled Plotly Graph</title>
-                <style>
-                    body {{
-                        margin: 0;
-                        padding: 0;
-                        background-color: #1f2235;
-                        color: white;
-                        font-family: Arial, sans-serif;
-                        display: flex;
-                        height: 100vh;
-                        width: 100vw;
-                        overflow: hidden;
-                    }}
-                    .plotly-graph-div {{
-                        width: 100%;
-                        height: 100%;
-                        background-color: #1f2235;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        }}
-                </style>
-            </head>
-            <body>
-                {html_content}
-            </body>
-            </html>
-                    """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Responsive Plotly Graph</title>
+        <style>
+            html, body {{
+                margin: 0;
+                padding: 0;
+                background-color: #1f2235;
+                color: white;
+                width: 100%;
+                height: 100%;
+                overflow: hidden; /* Disable scrolling */
+            }}
+            #graph {{
+                width: 100%;
+                height: 100%;
+            }}
+        </style>
+    </head>
+    <body>
+        <div id="graph">{html_content}</div>
+        <script>
+            // Adjust chart size dynamically
+            window.addEventListener('resize', () => {{
+                const graphs = document.querySelectorAll('.plotly-graph-div');
+                graphs.forEach(graph => {{
+                    Plotly.relayout(graph, {{
+                        width: window.innerWidth,
+                        height: window.innerHeight
+                    }});
+                }});
+            }});
+            // Trigger resize on load
+            window.dispatchEvent(new Event('resize'));
+        </script>
+    </body>
+    </html>
+    """
         webview.setHtml(custom_html)
+        webview.setAttribute(Qt.WA_TranslucentBackground, True)
+        webview.setStyleSheet("background: transparent;")
+        webview.page().setBackgroundColor(Qt.transparent)
         return webview
 
 
@@ -242,7 +250,7 @@ class EthereumTab(QWidget):
         """Create the bottom section with daily returns, sentiment analysis, and correlation matrix."""
         bottom_layout = QHBoxLayout()
         bottom_layout.addWidget(self.create_daily_returns_table())
-        bottom_layout.addWidget(self.create_sentiment_summary())
+        bottom_layout.addWidget(self.create_crypto_icon())
         bottom_layout.addWidget(self.create_correlation_matrix())
         return bottom_layout
 
@@ -254,22 +262,19 @@ class EthereumTab(QWidget):
             ["2024-11-10", "+0.8%"]
         ])
         return table
+    
+    def create_crypto_icon(self):
+        """Create a QLabel with a simple icon for sentiment analysis."""
+        sentiment_icon = QLabel()
+        sentiment_icon.setAlignment(Qt.AlignCenter)
+        sentiment_icon.setStyleSheet("background-color: #1a1b2f; padding: 10px")
 
-    def create_sentiment_summary(self):
-        """Create a dynamically resizing text box for sentiment analysis summary."""
-        sentiment_summary = QTextEdit()
-        sentiment_summary.setReadOnly(True)
-        sentiment_summary.setPlainText(
-            "• Positive sentiment: 65%\n"
-            "• Negative sentiment: 20%\n"
-            "• Neutral sentiment: 15%"
-        )
-        sentiment_summary.setStyleSheet("background-color: #1a1b2f; color: white; padding: 10px;border: 1px solid #ffdd00;")
-        self.adjust_text_edit_size(sentiment_summary)
-        sentiment_summary.document().contentsChanged.connect(
-            lambda: self.adjust_text_edit_size(sentiment_summary)
-        )
-        return sentiment_summary
+        # Load a simple icon
+        path = Helper.get_current_icon_directory()
+        pixmap = QPixmap(f"{path}\\icons8-ethereum.png")  # Replace with the path to your icon file
+        sentiment_icon.setPixmap(pixmap.scaled(50, 50, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+        return sentiment_icon
 
     def create_correlation_matrix(self):
         """Create and return a correlation matrix table."""

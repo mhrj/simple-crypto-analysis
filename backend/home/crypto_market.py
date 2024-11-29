@@ -15,14 +15,14 @@ class CryptoMarket:
         self.coin_price_url = f"{CRYPTOCOMPARE_BASE_URL}/pricemultifull"
         self.api_key = CRYPTOCOMPARE_API_KEY
 
-    def fetch_global_market_data():
+    def fetch_global_market_data(self):
         """
         Fetch global cryptocurrency market cap and 24-hour volume data.
         Returns:
             dict: Parsed global market data or None in case of failure.
         """
-        params = {"limit": 10, "tsym": "USD", "api_key": CryptoMarket.api_key}
-        data = helpers.get_request(CryptoMarket.market_cap_url, params)
+        params = {"limit": 10, "tsym": "USD", "api_key": self.api_key}
+        data = helpers.get_request(self.market_cap_url, params)
         if not data:
             print("Failed to fetch market cap data.")
             return None
@@ -39,7 +39,7 @@ class CryptoMarket:
             print("Error parsing market cap data.")
             return None
 
-    def fetch_coin_data():
+    def fetch_coin_data(self):
         """
         Fetch coin-specific data for BTC, ETH, and BNB.
         Returns:
@@ -48,9 +48,9 @@ class CryptoMarket:
         params = {
             "fsyms": "BTC,ETH,BNB",
             "tsyms": "USD",
-            "api_key": CryptoMarket.api_key,
+            "api_key": self.api_key,
         }
-        data = helpers.get_request(CryptoMarket.coin_price_url, params)
+        data = helpers.get_request(self.coin_price_url, params)
         if not data:
             print("Failed to fetch coin data.")
             return None

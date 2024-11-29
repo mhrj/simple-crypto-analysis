@@ -54,7 +54,7 @@ class CryptoNewsManager:
         news_list = []
 
         for article in articles[:limit]:
-            news_list.append({article.get("title", "No title")})
+            news_list.append(article.get("title", "No title"))
 
         return news_list
 

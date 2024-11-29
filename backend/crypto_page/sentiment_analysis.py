@@ -29,7 +29,7 @@ class NewsAggregator:
         start_date = end_date - timedelta(days=days)
         return {
             "from_date": start_date.strftime("%Y-%m-%d"),
-            "to_date": end_date.strftime("%Y-%m-%d"),
+            "to_date": end_date.strftime("%Y-%m-%d")
         }
 
     def _fetch_newsapi(self, query: str) -> Dict[str, List[str]]:
@@ -44,7 +44,7 @@ class NewsAggregator:
             "to": date_range["to_date"],
             "sortBy": "relevance",
             "language": "en",
-            "apiKey": NEWS_API_KEY,
+            "apiKey": NEWS_API_KEY
         }
         response = get_request(url, params)
         articles = response.get("articles", [])
@@ -63,7 +63,7 @@ class NewsAggregator:
             "start_date": date_range["from_date"],
             "end_date": date_range["to_date"],
             "language": "en",
-            "apiKey": CURRENTS_API_KEY,
+            "apiKey": CURRENTS_API_KEY
         }
         response = get_request(url, params)
         articles = response.get("news", [])
@@ -172,5 +172,5 @@ class SentimentAnalysis:
         return {
             "positive": sentiment_distribution['positive'],
             "neutral": sentiment_distribution['neutral'],
-            "negative": sentiment_distribution['negative'],
+            "negative": sentiment_distribution['negative']
         }

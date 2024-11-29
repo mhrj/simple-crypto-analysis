@@ -1,5 +1,6 @@
 import requests
 from typing import Dict
+from datetime import datetime
 
 def get_request(url: str, params: Dict) -> Dict:
     """
@@ -29,3 +30,18 @@ def format_large_number(number: float) -> str:
         return f"{number / 1_000_000:.2f} Million"
     else:
         return f"{number:.2f}"  # Return the number with 2 decimal places for smaller values
+    
+def convert_timestamps_to_clock(timestamps: list) -> list:
+    """
+    Convert a list of UNIX timestamps to their respective clock times in HH:MM format.
+
+    Args:
+        timestamps (list): List of UNIX timestamps.
+
+    Returns:
+        list: List of times in HH:MM format.
+    """
+    clock_times = [
+        datetime.utcfromtimestamp(ts).strftime('%H:%M') for ts in timestamps
+    ]
+    return clock_times

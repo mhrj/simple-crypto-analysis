@@ -6,7 +6,7 @@ from typing import Dict, List, Union
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(parent_dir)
 from constants import (CRYPTOCOMPARE_BASE_URL, CRYPTOCOMPARE_API_KEY)
-from helpers import get_request
+import helpers
 
 class CryptoAnalysis:
     """
@@ -22,9 +22,9 @@ class CryptoAnalysis:
             "fsym": coin.upper(),
             "tsym": currency.upper(),
             "limit": days,
-            "api_key": CRYPTOCOMPARE_API_KEY,
+            "api_key": CRYPTOCOMPARE_API_KEY
         }
-        data = get_request(url, params)
+        data = helpers.get_request(url, params)
         if data.get("Response") == "Success":
             return [day["close"] for day in data["Data"]["Data"]]
         raise RuntimeError(f"Error fetching historical prices: {data.get('Message', 'Unknown error')}")
@@ -58,9 +58,9 @@ class CryptoAnalysis:
         params = {
             "fsym": coin.upper(),
             "tsyms": currency.upper(),
-            "api_key": CRYPTOCOMPARE_API_KEY,
+            "api_key": CRYPTOCOMPARE_API_KEY
         }
-        data = get_request(url, params)
+        data = helpers.get_request(url, params)
         return data.get(currency.upper(), 0.0)
 
     def fetch_crypto_price_data(coin: str, currency: str = "USD") -> Dict[str, float]:
@@ -83,14 +83,14 @@ class CryptoAnalysis:
             "fsym": coin.upper(),
             "tsym": currency.upper(),
             "limit": limit,
-            "api_key": CRYPTOCOMPARE_API_KEY,
+            "api_key": CRYPTOCOMPARE_API_KEY
         }
-        response = get_request(url, params)
+        response = helpers.get_request(url, params)
         if response.get("Response") != "Success":
             raise RuntimeError(f"Error fetching data: {response.get('Message', 'Unknown error')}")
         data = response["Data"]["Data"]
         time_data, price_data = zip(*((entry["time"], entry["close"]) for entry in data))
-        return {"timestamps": list(time_data), "prices": list(price_data)}
+        return {"timestamps": helpers.convert_timestamps_to_clock(list(time_data)), "prices": list(price_data)}
 
     def calculate_indicators(coin: str, limit_days: int = 100, currency: str = "USD", calculate_for: int = 1,
                             ema_period: int = 14, sma_period: int = 14) -> Union[Dict, None]:
@@ -132,7 +132,7 @@ class CryptoAnalysis:
                 'timestamps': timestamps,
                 'prices': historical_data,
                 'EMA': list(indicators['ema']),
-                'SMA': list(indicators['sma']),
+                'SMA': list(indicators['sma'])
             }
             return CryptoAnalysis._cut_nans(result)
         except Exception as e:

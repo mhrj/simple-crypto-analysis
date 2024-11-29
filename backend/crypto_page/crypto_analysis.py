@@ -71,7 +71,7 @@ class CryptoAnalysis:
         return {
             "highest": max(prices),
             "lowest": min(prices),
-            "average": sum(prices) / len(prices),
+            "average": round(sum(prices) / len(prices), 2)
         }
 
     def fetch_crypto_prices_over_time(coin: str, limit: int = 60, currency: str = "USD") -> Dict:

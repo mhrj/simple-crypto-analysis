@@ -50,6 +50,43 @@ class CryptoAnalysis:
                 cut_data[key] = value[max_nans:]
         return cut_data
     
+    def get_correlation_matrix(coin_ids: list, vs_currency: str = "USD", days: int = 30) -> Dict:
+        """
+        Fetch historical price data for multiple cryptocurrencies and calculate the correlation matrix.
+        
+        Args:
+            coin_ids (list): List of cryptocurrency symbols (e.g., ["BTC", "ETH", "BNB"]).
+            vs_currency (str): The fiat currency to compare against (default is "USD").
+            days (int): Number of days of historical data to fetch (default is 30).
+            
+        Returns:
+            Dict: A correlation matrix for the specified cryptocurrencies as a nested dictionary.
+        """
+        base_url = f"{CRYPTOCOMPARE_BASE_URL}/v2/histoday"
+        historical_prices = {}
+        
+        for coin in coin_ids:
+            params = {
+                "fsym": coin.upper(),
+                "tsym": vs_currency.upper(),
+                "limit": days - 1  # CryptoCompare returns `limit + 1` days
+            }
+            data = helpers.get_request(base_url, params)
+            if data.get("Response") == "Success":
+                prices = [day["close"] for day in data["Data"]["Data"]]
+                historical_prices[coin] = prices
+            else:
+                print(f"Error fetching data for {coin}: {data.get('Message', 'Unknown error')}")
+        
+        # Create a DataFrame from the historical prices
+        df = pd.DataFrame(historical_prices)
+        
+        # Compute the correlation matrix
+        correlation_matrix = df.corr()
+        
+        # Return the correlation matrix as a dictionary
+        return correlation_matrix.to_dict()
+
     def get_current_price(coin: str, currency: str = "USD") -> float:
         """
         Fetches the current price of the specified cryptocurrency.

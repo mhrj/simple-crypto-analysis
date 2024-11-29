@@ -129,10 +129,6 @@ class BitcoinTab(QWidget):
         # Create PyQt widgets for the charts
         price_chart_widget = self.display_interactive_chart(price_fig)
         sma_chart_widget = self.display_interactive_chart(sma_fig)
-        price_chart_widget.setFixedWidth(700)
-        price_chart_widget.setFixedHeight(300)
-        sma_chart_widget.setFixedHeight(300)
-        sma_chart_widget.setFixedWidth(700)
         # Create a layout to hold both charts
         chart_layout = QVBoxLayout()
         chart_layout.addWidget(price_chart_widget)
@@ -191,40 +187,49 @@ class BitcoinTab(QWidget):
         # This function assumes you are using Plotly to embed the chart in a PyQt widget.
         # The implementation will depend on how you are embedding the chart.
         html_content = pio.to_html(fig, full_html=False,include_plotlyjs='cdn')
+        # Embed the HTML with dynamic resizing
         custom_html = f"""
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Styled Plotly Graph</title>
-                <style>
-                    body {{
-                        margin: 0;
-                        padding: 0;
-                        background-color: #1f2235;
-                        color: white;
-                        font-family: Arial, sans-serif;
-                        display: flex;
-                        height: 100vh;
-                        width: 100vw;
-                        overflow: hidden;
-                    }}
-                    .plotly-graph-div {{
-                        width: 100%;
-                        height: 100%;
-                        background-color: #1f2235;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        }}
-                </style>
-            </head>
-            <body>
-                {html_content}
-            </body>
-            </html>
-                    """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Responsive Plotly Graph</title>
+        <style>
+            html, body {{
+                margin: 0;
+                padding: 0;
+                background-color: #1f2235;
+                color: white;
+                width: 100%;
+                height: 100%;
+                overflow: hidden; /* Disable scrolling */
+            }}
+            #graph {{
+                width: 100%;
+                height: 100%;
+            }}
+        </style>
+    </head>
+    <body>
+        <div id="graph">{html_content}</div>
+        <script>
+            // Adjust chart size dynamically
+            window.addEventListener('resize', () => {{
+                const graphs = document.querySelectorAll('.plotly-graph-div');
+                graphs.forEach(graph => {{
+                    Plotly.relayout(graph, {{
+                        width: window.innerWidth,
+                        height: window.innerHeight
+                    }});
+                }});
+            }});
+            // Trigger resize on load
+            window.dispatchEvent(new Event('resize'));
+        </script>
+    </body>
+    </html>
+    """
         webview = QWebEngineView()
         webview.setHtml(custom_html)
         return webview

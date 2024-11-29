@@ -2,10 +2,10 @@ import sys
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QTextEdit, QHBoxLayout, QFrame, QSizePolicy
 )
-from PyQt5.QtChart import QChart, QChartView, QPieSeries,QPieSlice
-from PyQt5.QtGui import QPainter, QFont, QColor,QBrush
+from PyQt5.QtChart import QChart, QChartView, QPieSeries, QPieSlice
+from PyQt5.QtGui import QPainter, QFont, QColor, QBrush
 from PyQt5.QtCore import Qt, QMargins
-
+from widget_classes import OnboardingWidget
 
 
 class HomeTab(QWidget):
@@ -13,7 +13,8 @@ class HomeTab(QWidget):
         super().__init__()
 
         # Set main background color for the entire HomeTab
-        self.setStyleSheet("background-color: #1a1b2f;")  # Navy blue background
+        # Navy blue background
+        self.setStyleSheet("background-color: #1a1b2f;")
 
         # Main layout
         layout = QVBoxLayout()
@@ -28,8 +29,9 @@ class HomeTab(QWidget):
         layout.addWidget(summary_label)
         layout.addWidget(summary_table)
 
-        # Portfolio Overview
-        layout.addLayout(self.create_portfolio_layout())
+        self.onboarding_widget = OnboardingWidget.OnboardingWidget()
+        layout.addWidget(QLabel("Cryptocurrency Projections", self))
+        layout.addWidget(self.onboarding_widget)
 
         # News Feed
         news_label, news_feed = self.create_news_feed()
@@ -42,15 +44,19 @@ class HomeTab(QWidget):
     def create_metrics_layout(self):
         """Create layout for Key Metrics cards."""
         metrics_layout = QHBoxLayout()
-        metrics_layout.addWidget(self.create_metric_card("Market Cap", "$2.5 Trillion"))
-        metrics_layout.addWidget(self.create_metric_card("24h Volume", "$130 Billion"))
+        metrics_layout.addWidget(
+            self.create_metric_card("Market Cap", "$2.5 Trillion"))
+        metrics_layout.addWidget(
+            self.create_metric_card("24h Volume", "$130 Billion"))
         metrics_layout.addWidget(self.create_metric_card("Cryptos", "7,000+"))
         return metrics_layout
 
     def create_metric_card(self, title, value):
         """Helper method to create a unified metric card with the main background color."""
         card = QFrame()
-        card.setStyleSheet("background-color: #1f2235; border-radius: 10px; border: 1px solid #00bfa6; padding: 10px;")  # Dark purple with teal border
+        # Dark purple with teal border
+        card.setStyleSheet(
+            "background-color: #1f2235; border-radius: 10px; border: 1px solid #00bfa6; padding: 10px;")
 
         layout = QVBoxLayout()
         layout.setContentsMargins(5, 5, 5, 5)
@@ -75,11 +81,13 @@ class HomeTab(QWidget):
         """Create the cryptocurrency summary table without scroll bars and with dynamic sizing."""
         summary_label = QLabel("Top Cryptocurrencies Summary")
         summary_label.setAlignment(Qt.AlignCenter)
-        summary_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #ffdd00;")  # Gold text
+        summary_label.setStyleSheet(
+            "font-size: 18px; font-weight: bold; color: #ffdd00;")  # Gold text
 
         # Create table and set headers
         summary_table = QTableWidget(3, 6)
-        summary_table.setHorizontalHeaderLabels(["Coin", "Current Price", "24h Change", "Market Cap", "24h Volume", "Circulating Supply"])
+        summary_table.setHorizontalHeaderLabels(
+            ["Coin", "Current Price", "24h Change", "Market Cap", "24h Volume", "Circulating Supply"])
 
         # Update background to navy blue and style headers
         summary_table.setStyleSheet("""
@@ -118,18 +126,23 @@ class HomeTab(QWidget):
 
         # Populate table with data and icons
         data = [
-            ["Bitcoin", "$50,000", "+5%", "$1 Trillion", "$40 Billion", "18.7 Million BTC"],
-            ["Ethereum", "$4,000", "-2%", "$500 Billion", "$20 Billion", "118 Million ETH"],
-            ["Binance Coin", "$400", "+1%", "$60 Billion", "$5 Billion", "160 Million BNB"]
+            ["Bitcoin", "$50,000", "+5%", "$1 Trillion",
+                "$40 Billion", "18.7 Million BTC"],
+            ["Ethereum", "$4,000", "-2%", "$500 Billion",
+                "$20 Billion", "118 Million ETH"],
+            ["Binance Coin", "$400", "+1%", "$60 Billion",
+                "$5 Billion", "160 Million BNB"]
         ]
         for row, coin_data in enumerate(data):
             for col, value in enumerate(coin_data):
                 item = QTableWidgetItem(value)
                 if col == 2:  # Change column
                     if "+" in value:
-                        item.setForeground(QColor("#00ff00"))  # Lime green for positive change
+                        # Lime green for positive change
+                        item.setForeground(QColor("#00ff00"))
                     elif "-" in value:
-                        item.setForeground(QColor("#ff004d"))  # Red for negative change
+                        # Red for negative change
+                        item.setForeground(QColor("#ff004d"))
                 item.setFont(QFont("Arial", 10))
                 summary_table.setItem(row, col, item)
 
@@ -146,7 +159,8 @@ class HomeTab(QWidget):
 
         # Resize columns to fit content and stretch last column
         summary_table.resizeColumnsToContents()
-        summary_table.horizontalHeader().setStretchLastSection(True)  # Make last column stretchable
+        summary_table.horizontalHeader().setStretchLastSection(
+            True)  # Make last column stretchable
 
         # Remove scrollbars
         summary_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -154,62 +168,15 @@ class HomeTab(QWidget):
 
         return summary_label, summary_table
 
-    def create_portfolio_layout(self):
-        """Create portfolio distribution layout."""
-        portfolio_layout = QHBoxLayout()  # Switch to horizontal layout
-
-        # Portfolio Label
-        portfolio_label = QLabel("Portfolio Distribution")
-        portfolio_label.setAlignment(Qt.AlignCenter)
-        portfolio_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #ffdd00;")  # Gold text
-
-        # Pie Chart
-        pie_chart = QPieSeries()
-        pie_chart.append("Bitcoin", 40)
-        pie_chart.append("Ethereum", 30)
-        pie_chart.append("Others", 30)
-
-        # Customize Pie Chart Text to White
-        for slice in pie_chart.slices():
-            slice.setLabelVisible(True)
-            slice.setLabelColor(QColor("white"))
-            slice.setLabelPosition(QPieSlice.LabelOutside)
-
-        # Chart
-        chart = QChart()
-        chart.addSeries(pie_chart)
-        chart.setTitle("Portfolio Distribution")
-        chart.setTitleBrush(QBrush(QColor("white")))  # Set chart title color to white
-        chart.setBackgroundBrush(QColor(26, 27, 47, 0))  # Transparent background
-        chart.setMargins(QMargins(0, 0, 0, 0))
-
-        # Customize Legend Text Color
-        legend = chart.legend()
-        legend.setVisible(True)
-        legend.setAlignment(Qt.AlignRight)
-        for marker in legend.markers():
-            marker.setBrush(QBrush(QColor("white")))
-            marker.setLabelBrush(QBrush(QColor("white")))
-
-        # Chart View
-        chart_view = QChartView(chart)
-        chart_view.setRenderHint(QPainter.Antialiasing)
-        chart_view.setStyleSheet("background-color: #1a1b2f; border-radius: 10px; border: 1px solid #00bfa6;")
-        chart_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        chart_view.setContentsMargins(0, 0, 0, 0)
-
-        # Add Widgets to Layout (Left to Right)
-        portfolio_layout.addWidget(portfolio_label)
-        portfolio_layout.addWidget(chart_view)
-
-        return portfolio_layout
-
+    def create_risk_layout(self):
+        return
 
     def create_news_feed(self):
         """Create news feed section."""
         news_label = QLabel("Latest Cryptocurrency News")
         news_label.setAlignment(Qt.AlignCenter)
-        news_label.setStyleSheet("font-size: 18px; font-weight: bold; color: #ffdd00;")  # Gold text
+        news_label.setStyleSheet(
+            "font-size: 18px; font-weight: bold; color: #ffdd00;")  # Gold text
 
         news_feed = QTextEdit()
         news_feed.setReadOnly(True)
@@ -218,6 +185,7 @@ class HomeTab(QWidget):
             "• Ethereum 2.0 upgrade scheduled.\n"
             "• Major financial institution adopts blockchain technology.\n"
         )
-        news_feed.setStyleSheet("background-color: #1f2235; color: white; padding: 10px; border-radius: 10px; border: 1px solid #00bfa6;")
+        news_feed.setStyleSheet(
+            "background-color: #1f2235; color: white; padding: 10px; border-radius: 10px; border: 1px solid #00bfa6;")
 
         return news_label, news_feed

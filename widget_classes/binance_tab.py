@@ -72,46 +72,46 @@ class BinanceTab(QWidget):
         chart_html = fig.to_html(include_plotlyjs='cdn')
         
         custom_html = f"""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <style>
-            html, body {{
-                margin: 0;
-                padding: 0;
-                background-color: #1f2235;
-                color: white;
-                width: 100%;
-                height: 100%;
-                overflow: hidden; /* Disable scrolling */
-            }}
-            #graph {{
-                width: 100%;
-                height: 100%;
-            }}
-        </style>
-    </head>
-    <body>
-        <div id="graph">{chart_html}</div>
-        <script>
-            // Adjust chart size dynamically
-            window.addEventListener('resize', () => {{
-                const graphs = document.querySelectorAll('.plotly-graph-div');
-                graphs.forEach(graph => {{
-                    Plotly.relayout(graph, {{
-                        width: window.innerWidth,
-                        height: window.innerHeight
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    html, body {{
+                        margin: 0;
+                        padding: 0;
+                        background-color: #1f2235;
+                        color: white;
+                        width: 100%;
+                        height: 100%;
+                        overflow: hidden; /* Disable scrolling */
+                    }}
+                    #graph {{
+                        width: 100%;
+                        height: 100%;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div id="graph">{chart_html}</div>
+                <script>
+                    // Adjust chart size dynamically
+                    window.addEventListener('resize', () => {{
+                        const graphs = document.querySelectorAll('.plotly-graph-div');
+                        graphs.forEach(graph => {{
+                            Plotly.relayout(graph, {{
+                                width: window.innerWidth,
+                                height: window.innerHeight
+                            }});
+                        }});
                     }});
-                }});
-            }});
-            // Trigger resize on load
-            window.dispatchEvent(new Event('resize'));
-        </script>
-    </body>
-    </html>
-    """
+                    // Trigger resize on load
+                    window.dispatchEvent(new Event('resize'));
+                </script>
+            </body>
+            </html>
+            """
         webview = QWebEngineView()
         webview.setAttribute(Qt.WA_TranslucentBackground, True)
         webview.setStyleSheet("background: transparent;")
@@ -155,13 +155,6 @@ class BinanceTab(QWidget):
 
         card.setLayout(layout)
         return card
-
-    def update_summary(self, current_price, avg_price, highest_price, lowest_price):
-        """Update the price summary with new values."""
-        self.current_price_label.setText(f"Current Price: ${current_price:.2f}")
-        self.average_price_label.setText(f"Average Price: ${avg_price:.2f}")
-        self.highest_price_label.setText(f"Highest Price: ${highest_price:.2f}")
-        self.lowest_price_label.setText(f"Lowest Price: ${lowest_price:.2f}")
 
     def create_r_data_direct(self):
         """Generate data using R and return it as two Pandas DataFrames."""
@@ -288,47 +281,46 @@ class BinanceTab(QWidget):
         html_content = pio.to_html(fig, full_html=False,include_plotlyjs='cdn')
         # Embed the HTML with dynamic resizing
         custom_html = f"""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Responsive Plotly Graph</title>
-        <style>
-            html, body {{
-                margin: 0;
-                padding: 0;
-                background-color: #1f2235;
-                color: white;
-                width: 100%;
-                height: 100%;
-                overflow: hidden; /* Disable scrolling */
-            }}
-            #graph {{
-                width: 100%;
-                height: 100%;
-            }}
-        </style>
-    </head>
-    <body>
-        <div id="graph">{html_content}</div>
-        <script>
-            // Adjust chart size dynamically
-            window.addEventListener('resize', () => {{
-                const graphs = document.querySelectorAll('.plotly-graph-div');
-                graphs.forEach(graph => {{
-                    Plotly.relayout(graph, {{
-                        width: window.innerWidth,
-                        height: window.innerHeight
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    html, body {{
+                        margin: 0;
+                        padding: 0;
+                        background-color: #1f2235;
+                        color: white;
+                        width: 100%;
+                        height: 100%;
+                        overflow: hidden; /* Disable scrolling */
+                    }}
+                    #graph {{
+                        width: 100%;
+                        height: 100%;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div id="graph">{html_content}</div>
+                <script>
+                    // Adjust chart size dynamically
+                    window.addEventListener('resize', () => {{
+                        const graphs = document.querySelectorAll('.plotly-graph-div');
+                        graphs.forEach(graph => {{
+                            Plotly.relayout(graph, {{
+                                width: window.innerWidth,
+                                height: window.innerHeight
+                            }});
+                        }});
                     }});
-                }});
-            }});
-            // Trigger resize on load
-            window.dispatchEvent(new Event('resize'));
-        </script>
-    </body>
-    </html>
-    """
+                    // Trigger resize on load
+                    window.dispatchEvent(new Event('resize'));
+                </script>
+            </body>
+            </html>
+            """
         webview = QWebEngineView()
         webview.setAttribute(Qt.WA_TranslucentBackground, True)
         webview.setStyleSheet("background: transparent;")

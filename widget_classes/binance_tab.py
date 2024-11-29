@@ -9,12 +9,12 @@ from PyQt5.QtWebEngineWidgets import QWebEngineView
 from widget_classes.helper import Helper
 import plotly.io as pio
 import plotly.graph_objects as go
+import pyRserve
 
 
 class BinanceTab(QWidget):
-    def __init__(self, conn):
+    def __init__(self):
         super().__init__()
-        self.conn = conn
         self.init_ui()
 
     def init_ui(self):
@@ -157,6 +157,7 @@ class BinanceTab(QWidget):
         return card
 
     def create_r_data_direct(self):
+        conn = pyRserve.connect(host='localhost', port=6312)
         """Generate data using R and return it as two Pandas DataFrames."""
         try:
             r_script = """
@@ -181,7 +182,8 @@ class BinanceTab(QWidget):
 
                 list(data = data, events = events)
             """
-            result = self.conn.eval(r_script)
+            result = conn.eval(r_script)
+            conn.close()
 
             # Convert result to dictionaries manually
             data_dict_prices = {

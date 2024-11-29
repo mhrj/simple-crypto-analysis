@@ -6,6 +6,9 @@ from PyQt5.QtChart import QChart, QChartView, QPieSeries, QPieSlice
 from PyQt5.QtGui import QPainter, QFont, QColor, QBrush
 from PyQt5.QtCore import Qt, QMargins
 from widget_classes import OnboardingWidget
+from backend.home.crypto_market import CryptoMarket
+from backend.home.crypto_market_data import CryptoMarketData
+from backend.home.crypto_news_manager import CryptoNewsManager
 
 
 class HomeTab(QWidget):
@@ -46,13 +49,20 @@ class HomeTab(QWidget):
         self.setLayout(layout)
 
     def create_metrics_layout(self):
+        #get data from backend
+        crypto = CryptoMarket()
+        data = crypto.fetch_market_summary()
+        market_cap = data["market_cap_usd"]
+        volume_24h = data["volume_24h_usd"]
+        top_gainer_coin = data["top_gainer"]["coin"]
+        top_gainer_value = data["top_gainer"]["change"]
         """Create layout for Key Metrics cards."""
         metrics_layout = QHBoxLayout()
         metrics_layout.addWidget(
-            self.create_metric_card("Market Cap", "$2.5 Trillion"))
+            self.create_metric_card("Market Cap", f"${market_cap}"))
         metrics_layout.addWidget(
-            self.create_metric_card("24h Volume", "$130 Billion"))
-        metrics_layout.addWidget(self.create_metric_card("Cryptos", "7,000+"))
+            self.create_metric_card("24h Volume", f"${volume_24h}"))
+        metrics_layout.addWidget(self.create_metric_card("Top Gainer", f"{top_gainer_coin}/{top_gainer_value}%"))
         return metrics_layout
 
     def create_metric_card(self, title, value):
@@ -82,6 +92,9 @@ class HomeTab(QWidget):
         return card
 
     def create_summary_table(self):
+        #get data from backend
+        crypto_data = CryptoMarketData()
+        data = crypto_data.fetch_crypto_data(["BTC","ETH","BNB"])
         """Create the cryptocurrency summary table without scroll bars and with dynamic sizing."""
         summary_label = QLabel("Top Cryptocurrencies Summary")
         summary_label.setAlignment(Qt.AlignCenter)
@@ -130,12 +143,12 @@ class HomeTab(QWidget):
 
         # Populate table with data and icons
         data = [
-            ["Bitcoin", "$50,000", "+5%", "$1 Trillion",
-                "$40 Billion", "18.7 Million BTC"],
-            ["Ethereum", "$4,000", "-2%", "$500 Billion",
-                "$20 Billion", "118 Million ETH"],
-            ["Binance Coin", "$400", "+1%", "$60 Billion",
-                "$5 Billion", "160 Million BNB"]
+            ["Bitcoin", f"${data['BTC']['current_price']}", f"{data['BTC']['24h_change']}%", f"${data['BTC']['market_cap']}",
+                f"${data['BTC']['24h_volume']}", f"{data['BTC']['supply']}"],
+            ["Ethereum", f"${data['ETH']['current_price']}", f"{data['ETH']['24h_change']}%", f"${data['ETH']['market_cap']}",
+                f"${data['ETH']['24h_volume']}", f"${data['ETH']['supply']}"],
+            ["Binance Coin", f"${data['BNB']['current_price']}", f"{data['BNB']['24h_change']}%", f"${data['BNB']['market_cap']}",
+                f"${data['BNB']['24h_volume']}", f"${data['BNB']['supply']}"]
         ]
         for row, coin_data in enumerate(data):
             for col, value in enumerate(coin_data):
@@ -176,6 +189,9 @@ class HomeTab(QWidget):
         return
 
     def create_news_feed(self):
+        #get data from backend
+        news_manager = CryptoNewsManager()
+        data = news_manager.fetch_latest_crypto_news()
         """Create news feed section."""
         news_label = QLabel("Latest Cryptocurrency News")
         news_label.setAlignment(Qt.AlignCenter)
@@ -185,9 +201,11 @@ class HomeTab(QWidget):
         news_feed = QTextEdit()
         news_feed.setReadOnly(True)
         news_feed.setPlainText(
-            "• Bitcoin hits new high!\n"
-            "• Ethereum 2.0 upgrade scheduled.\n"
-            "• Major financial institution adopts blockchain technology.\n"
+            f"• {data[0]}\n"
+            f"• {data[1]}\n"
+            f"• {data[2]}\n"
+            f"• {data[3]}\n"
+            f"• {data[4]}\n"
         )
         news_feed.setStyleSheet(
             "background-color: #1f2235; color: white; padding: 10px; border-radius: 10px; border: 1px solid #00bfa6;")

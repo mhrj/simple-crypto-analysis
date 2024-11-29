@@ -11,9 +11,6 @@ import os
 class CryptoApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        
-        conn = pyRserve.connect(host='localhost', port=6312)
-
         # Remove the default window frame
         self.setWindowFlags(Qt.FramelessWindowHint)
 
@@ -43,13 +40,13 @@ class CryptoApp(QMainWindow):
         self.home_tab = home_tab.HomeTab()
         self.tabs.addTab(self.home_tab, "Home")
         
-        self.bitcoin_tab = bitcoin_tab.BitcoinTab(conn)
+        self.bitcoin_tab = bitcoin_tab.BitcoinTab()
         self.tabs.addTab(self.bitcoin_tab, "Bitcoin")
         
-        self.ethereum_tab = ethereum_tab.EthereumTab(conn)
+        self.ethereum_tab = ethereum_tab.EthereumTab()
         self.tabs.addTab(self.ethereum_tab, "Ethereum")
         
-        self.binance_tab = binance_tab.BinanceTab(conn)
+        self.binance_tab = binance_tab.BinanceTab()
         self.tabs.addTab(self.binance_tab, "Binance Coin")
         
         self.online_R_interaction_tab = online_R_interaction.OnlineRInteraction()

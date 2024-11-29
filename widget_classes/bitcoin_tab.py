@@ -1,20 +1,20 @@
-import os
 import pandas as pd
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QTextEdit, QHBoxLayout, QFrame
+    QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QTextEdit, QHBoxLayout, QFrame,QHeaderView
 )
 from PyQt5.QtGui import QFont,QPixmap
 from PyQt5.QtCore import Qt
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from widget_classes.helper import Helper
+from backend.crypto_page.crypto_analysis import CryptoAnalysis
+from backend.crypto_page.sentiment_analysis import SentimentAnalysis
 import plotly.io as pio
 import plotly.graph_objects as go
 
 
 class BitcoinTab(QWidget):
-    def __init__(self, conn):
+    def __init__(self):
         super().__init__()
-        self.conn = conn
         self.init_ui()
 
     def init_ui(self):
@@ -53,10 +53,13 @@ class BitcoinTab(QWidget):
         return card
 
     def create_pie_chart(self):
+        # fetch data from backend
+        sentiment_analysis = SentimentAnalysis(1)
+        sentiment_data = sentiment_analysis.calculate_sentiment_distribution(coin_name="BTC")
         """Generate a pie chart using Plotly and return it as a QWebEngineView."""
         # Example data
         labels = ['Positive', 'Negative', 'Neutral']
-        values = [65, 20, 15]
+        values = [sentiment_data["positive"], sentiment_data["negative"], sentiment_data["neutral"]]
         colors = ['#00bfa6', '#ff6f61', '#ffbb33']
 
         # Create Plotly pie chart
@@ -121,11 +124,16 @@ class BitcoinTab(QWidget):
         return webview
 
     def create_summary_widget(self):
+        #fetch price data from backend
+        price_data = CryptoAnalysis.fetch_crypto_price_data("BTC")
+        highest = price_data["highest"]
+        lowest = price_data["lowest"]
+        average = price_data["average"]
         """Create and return the layout for Key Metrics cards."""
         metrics_layout = QHBoxLayout()
         metrics = [
-            ("Highest/Lowest price", "$130 Billion"),
-            ("Average Price Over Time", "7,000+")
+            ("Highest/Lowest price", f"${highest}/${lowest}"),
+            ("Average Price Over Time", f"${average}")
         ]
         for title, value in metrics:
             metrics_layout.addWidget(self.create_metric_card(title, value))
@@ -157,52 +165,15 @@ class BitcoinTab(QWidget):
         return card
 
     def create_r_data_direct(self):
-        """Generate data using R and return it as two Pandas DataFrames."""
-        try:
-            r_script = """
-                library(dplyr)
-                library(zoo)
+        #fetch data from backend
+        data_dict_prices = CryptoAnalysis.fetch_crypto_prices_over_time("BTC")
+        # Convert result to dictionaries manually
+        data_dict_smas = CryptoAnalysis.calculate_indicators("BTC")
 
-                data <- data.frame(
-                    time = 1:100,
-                    price = cumsum(rnorm(100, 0, 1)) + 50
-                )
-
-                data <- data %>%
-                    mutate(
-                        SMA_10 = zoo::rollmean(price, 10, fill = NA),
-                        SMA_20 = zoo::rollmean(price, 20, fill = NA)
-                    )
-
-                events <- data.frame(
-                    time = c(20, 50, 80),
-                    price = c(52, 48, 54)
-                )
-
-                list(data = data, events = events)
-            """
-            result = self.conn.eval(r_script)
-
-            # Convert result to dictionaries manually
-            data_dict_prices = {
-                'time': result['data'][0],  # Time data
-                'price': result['data'][1]  # Price data
-            }
-
-            data_dict_smas = {
-                'time': result['data'][0],
-                'price': result['data'][1],     # Use the same `time` index
-                'SMA_10': result['data'][2],    # SMA 10 data
-                'SMA_20': result['data'][3]     # SMA 20 data
-            }
-
-            # Create pandas DataFrames from dictionaries
-            data_df = pd.DataFrame(data_dict_prices)  # Data for price chart
-            events_df = pd.DataFrame(data_dict_smas)  # Data for SMA chart
-            return data_df, events_df
-        except Exception as e:
-            print(f"Error interacting with Rserve: {e}")
-            return None, None
+        # Create pandas DataFrames from dictionaries
+        data_df = pd.DataFrame(data_dict_prices)  # Data for price chart
+        events_df = pd.DataFrame(data_dict_smas)  # Data for SMA chart
+        return data_df, events_df
 
     def add_charts(self):
         """Add the interactive Plotly charts."""
@@ -240,7 +211,7 @@ class BitcoinTab(QWidget):
     def create_price_chart(self, data):
         """Create a Plotly chart for price."""
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=data['time'], y=data['price'], mode='lines', name='Price'))
+        fig.add_trace(go.Scatter(x=data['timestamps'], y=data['prices'], mode='lines', name='Price'))
         fig.update_layout(
             title="Price Chart",
             xaxis_title="Time",
@@ -257,13 +228,12 @@ class BitcoinTab(QWidget):
     def create_sma_chart(self, events):
         """Create a Plotly chart for SMA and events."""
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=events['time'], y=events['SMA_10'], mode='lines', name='10-Day SMA', line=dict(dash='dash',width=1)))
-        fig.add_trace(go.Scatter(x=events['time'], y=events['SMA_20'], mode='lines', name='20-Day SMA', line=dict(dash='dot')))
-        fig.add_trace(go.Scatter(x=events['time'], y=events['price'], mode='markers', name='Important Events', marker=dict(color='red', size=5)))
+        fig.add_trace(go.Scatter(x=events['timestamps'], y=events['SMA'], mode='lines', name='10-Day SMA', line=dict(dash='dash',width=1)))
+        fig.add_trace(go.Scatter(x=events['timestamps'], y=events['EMA'], mode='lines', name='20-Day SMA', line=dict(dash='dot')))
         fig.update_layout(
             title="SMA and Important Events",
             xaxis_title="Time",
-            yaxis_title="Price",
+            yaxis_title="SMA/EMA",
             template="plotly_dark"
         )
         fig.update_layout(
@@ -336,11 +306,16 @@ class BitcoinTab(QWidget):
         return bottom_layout
 
     def create_daily_returns_table(self):
+        #get data from backend
+        data_BTC = CryptoAnalysis.calculate_daily_growth("BTC")
+        data_index_zero = data_BTC["daily_growth"][0]
+        data_index_one = data_BTC["daily_growth"][1]
+        data_index_two = data_BTC["daily_growth"][2]
         """Create and return a table for daily returns."""
-        table = self.create_table_widget(3, 2, ["Date", "Daily Return (%)"], [
-            ["2024-11-08", "+2.5%"],
-            ["2024-11-09", "-1.2%"],
-            ["2024-11-10", "+0.8%"]
+        table = self.create_table_widget(3, 2, ["Date", "Daily Growth (%)"], [
+            [data_BTC["dates"][0], f"{data_index_zero}%"],
+            [data_BTC["dates"][1], f"{data_index_one}%"],
+            [data_BTC["dates"][2], f"{data_index_two}%"]
         ])
         return table
 
@@ -358,40 +333,33 @@ class BitcoinTab(QWidget):
         return sentiment_icon
 
     def create_correlation_matrix(self):
+        # get data from backend
+        data = CryptoAnalysis.get_correlation_matrix(["BTC","ETH","BNB"])
         """Create and return a correlation matrix table."""
-        correlation_matrix = self.create_table_widget(3, 3, ["BTC", "ETH", "BNB"], [
-            [1.00, 0.85, 0.75],
-            [0.85, 1.00, 0.70],
-            [0.75, 0.70, 1.00]
-        ])
+        correlation_matrix = self.create_table_widget(
+            rows=3,
+            cols=3,
+            headers=["BTC", "ETH", "BNB"],
+            vertical_headers=["BTC", "ETH", "BNB"],
+            data=[
+                [data["BTC"]["BTC"], data["BTC"]["ETH"], data["BTC"]["BNB"]],
+                [data["ETH"]["BTC"], data["ETH"]["ETH"], data["ETH"]["BNB"]],
+                [data["BNB"]["BTC"], data["BNB"]["ETH"], data["BNB"]["BNB"]]
+            ]
+        )
         return correlation_matrix
 
-    def create_table_widget(self, rows, cols, headers, data):
-        """Create a table widget with specific data."""
+    def create_table_widget(self, rows, cols, headers, data, vertical_headers=None):
+        """
+        Create and return a QTableWidget populated with data.
+
+        :param rows: Number of rows in the table.
+        :param cols: Number of columns in the table.
+        :param headers: List of column headers.
+        :param data: 2D list containing the table data.
+        :param vertical_headers: Optional list of custom vertical headers.
+        """
         table = QTableWidget(rows, cols)
-        table.setHorizontalHeaderLabels(headers)
-        for row, row_data in enumerate(data):
-            for col, value in enumerate(row_data):
-                table.setItem(row, col, QTableWidgetItem(str(value)))
-         # Resize rows to fit content
-        table.resizeRowsToContents()
-
-        # Calculate the total height of the table to fit the content
-        total_height = table.horizontalHeader().height()
-        for row in range(table.rowCount()):
-            total_height += table.rowHeight(row)
-
-        # Set the table's height to the calculated value
-        table.setFixedHeight(total_height)
-
-        # Resize columns to fit content and stretch last column
-        table.resizeColumnsToContents()
-        table.horizontalHeader().setStretchLastSection(True)  # Make last column stretchable
-
-        # Remove scrollbars
-        table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        table.resizeColumnsToContents()
         table.setStyleSheet("""
             QTableWidget {
                 background-color: #1a1b2f;
@@ -424,8 +392,38 @@ class BitcoinTab(QWidget):
                 border: 1px solid #ffdd00;
             }
         """)
-        table.horizontalHeader().setStyleSheet("color: #ffdd00; font-weight: bold;")
-        table.setEditTriggers(QTableWidget.NoEditTriggers)
+        table.setHorizontalHeaderLabels(headers)
+
+        if vertical_headers:
+            table.setVerticalHeaderLabels(vertical_headers)
+
+        # Populate table with data
+        for row in range(rows):
+            for col in range(cols):
+                value = data[row][col]
+                # Check if the value is numeric, format it if it is
+                item_text = f"{value:.2f}" if isinstance(value, (int, float)) else str(value)
+                item = QTableWidgetItem(item_text)
+                item.setTextAlignment(Qt.AlignCenter)
+                table.setItem(row, col, item)
+         # Resize rows to fit content
+        table.resizeRowsToContents()
+
+        # Calculate the total height of the table to fit the content
+        total_height = table.horizontalHeader().height()
+        for row in range(table.rowCount()):
+            total_height += table.rowHeight(row)
+
+        # Set the table's height to the calculated value
+        table.setFixedHeight(total_height)
+
+        # Set table properties
+        table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        table.resizeColumnsToContents()
+        table.horizontalHeader().setStretchLastSection(True)
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
         return table
 
     def adjust_text_edit_size(self, text_edit):

@@ -66,9 +66,10 @@ class CryptoApp(QMainWindow):
         show_splash_screen_with_animation()
 
     def create_window_controls(self):
-        """Create custom buttons for close, minimize, and maximize."""
-        close_button = QPushButton("")
-        close_button.setStyleSheet("""
+        """Create custom buttons for close, minimize, and maximize with dynamic positioning."""
+        # Define buttons
+        self.close_button = QPushButton("")
+        self.close_button.setStyleSheet("""
             QPushButton {
                 background-color: #ff6f61;
                 color: white;
@@ -83,10 +84,10 @@ class CryptoApp(QMainWindow):
                 background-color: #ff3e2f;
             }
         """)
-        close_button.clicked.connect(self.close)  # Close button action
+        self.close_button.clicked.connect(self.close)
 
-        minimize_button = QPushButton("-")
-        minimize_button.setStyleSheet("""
+        self.minimize_button = QPushButton("-")
+        self.minimize_button.setStyleSheet("""
             QPushButton {
                 background-color: #ffbb33;
                 color: white;
@@ -101,10 +102,10 @@ class CryptoApp(QMainWindow):
                 background-color: #ff9900;
             }
         """)
-        minimize_button.clicked.connect(self.showMinimized)  # Minimize button action
+        self.minimize_button.clicked.connect(self.showMinimized)
 
-        maximize_button = QPushButton("")
-        maximize_button.setStyleSheet("""
+        self.maximize_button = QPushButton("")
+        self.maximize_button.setStyleSheet("""
             QPushButton {
                 background-color: #33cc33;
                 color: white;
@@ -119,19 +120,44 @@ class CryptoApp(QMainWindow):
                 background-color: #28a745;
             }
         """)
-        maximize_button.clicked.connect(self.toggle_maximize)  # Maximize button action
+        self.maximize_button.clicked.connect(self.toggle_maximize)
 
         # Layout to position buttons horizontally
-        controls_layout = QHBoxLayout()
-        controls_layout.addWidget(minimize_button)
-        controls_layout.addWidget(maximize_button)
-        controls_layout.addWidget(close_button)
+        self.controls_layout = QHBoxLayout()
+        self.controls_layout.setContentsMargins(0, 0, 0, 0)
+        self.controls_layout.addWidget(self.minimize_button)
+        self.controls_layout.addWidget(self.maximize_button)
+        self.controls_layout.addWidget(self.close_button)
 
-        # Create a container widget for the buttons and position it
-        controls_widget = QWidget(self)
-        controls_widget.setLayout(controls_layout)
-        controls_widget.setGeometry(self.width() - 140, 0, 140, 50)  # Position in the top-right corner
-        controls_widget.setStyleSheet("background: transparent;")  # Make sure the background is transparent for the buttons to show
+        # Create a container widget for the buttons
+        self.controls_widget = QWidget(self)
+        self.controls_widget.setLayout(self.controls_layout)
+        self.controls_widget.setStyleSheet("background: transparent;")  # Transparent background
+
+        # Initial position
+        self.update_window_controls_position()
+        
+        
+    def update_window_controls_position(self):
+        """Update the position of the window control buttons dynamically."""
+        if self.isMaximized():
+            # Center the controls at the top
+            controls_width = self.controls_widget.sizeHint().width()
+            self.controls_widget.setGeometry(
+                (self.width() - controls_width) // 2,
+                10,  # Top padding
+                controls_width,
+                self.controls_widget.sizeHint().height()
+            )
+        else:
+            # Position at the top-right corner
+            self.controls_widget.setGeometry(
+                self.width() - self.controls_widget.sizeHint().width() - 10,  # Right padding
+                10,  # Top padding
+                self.controls_widget.sizeHint().width(),
+                self.controls_widget.sizeHint().height()
+            )
+
 
     def fade_out_splash(self, splash):
         """Fade out the splash screen and close it."""
@@ -182,6 +208,7 @@ class CryptoApp(QMainWindow):
         mask = QRegion(polygon)
         self.setMask(mask)  # Apply the mask to the window
         super().resizeEvent(event)
+        self.update_window_controls_position()
         
 
 def show_splash_screen_with_animation():

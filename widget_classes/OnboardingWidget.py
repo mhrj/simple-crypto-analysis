@@ -17,7 +17,7 @@ class OnboardingWidget(QWidget):
                 background-color: #2c2f45;
             }
         """)
-        self.setMinimumSize(500, 300)  # Set width and height
+        self.setMinimumSize(500, 350)  # Set width and height
         # Main layout
         layout = QVBoxLayout(self)
 

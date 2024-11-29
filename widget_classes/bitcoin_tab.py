@@ -231,6 +231,9 @@ class BitcoinTab(QWidget):
     </html>
     """
         webview = QWebEngineView()
+        webview.setAttribute(Qt.WA_TranslucentBackground, True)
+        webview.setStyleSheet("background: transparent;")
+        webview.page().setBackgroundColor(Qt.transparent)
         webview.setHtml(custom_html)
         return webview
 

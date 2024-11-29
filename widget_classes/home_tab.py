@@ -30,7 +30,11 @@ class HomeTab(QWidget):
         layout.addWidget(summary_table)
 
         self.onboarding_widget = OnboardingWidget.OnboardingWidget()
-        layout.addWidget(QLabel("Cryptocurrency Projections", self))
+        board_title = QLabel("Cryptocurrency Risk Projections")
+        board_title.setAlignment(Qt.AlignCenter)
+        board_title.setFont(QFont("Arial", 18, QFont.Bold))
+        board_title.setStyleSheet("color: #ffdd00;")  # Gold text
+        layout.addWidget(board_title)
         layout.addWidget(self.onboarding_widget)
 
         # News Feed

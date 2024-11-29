@@ -240,6 +240,9 @@ class EthereumTab(QWidget):
     </html>
     """
         webview.setHtml(custom_html)
+        webview.setAttribute(Qt.WA_TranslucentBackground, True)
+        webview.setStyleSheet("background: transparent;")
+        webview.page().setBackgroundColor(Qt.transparent)
         return webview
 
 

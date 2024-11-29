@@ -66,6 +66,9 @@ class OnboardingWidget(QWidget):
 
         # Add chart to the screen layout
         chart_view = QWebEngineView()
+        chart_view.setAttribute(Qt.WA_TranslucentBackground, True)
+        chart_view.setStyleSheet("background: transparent;")
+        chart_view.page().setBackgroundColor(Qt.transparent)
         # Allow dynamic resizing
         chart_view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         chart_html = self.generate_fan_chart_html(shift=i * 2)

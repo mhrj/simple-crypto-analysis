@@ -3,14 +3,14 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHBoxLayout, QFrame,QHeaderView
 )
 from PyQt5.QtGui import QFont,QPixmap
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt,QTimer
 from PyQt5.QtWebEngineWidgets import QWebEngineView
 from widget_classes.helper import Helper
 from backend.crypto_page.crypto_analysis import CryptoAnalysis
 from backend.crypto_page.sentiment_analysis import SentimentAnalysis
 import plotly.io as pio
 import plotly.graph_objects as go
-
+import json
 
 class BinanceTab(QWidget):
     def __init__(self):
@@ -188,12 +188,12 @@ class BinanceTab(QWidget):
         sma_fig = self.create_sma_chart(events)    # SMA chart from events_df
 
         # Create PyQt widgets for the charts
-        price_chart_widget = self.display_interactive_chart(price_fig)
+        self.price_chart_widget = self.display_interactive_chart(price_fig)
         sma_chart_widget = self.display_interactive_chart(sma_fig)
 
         # Create a layout to hold both charts
         chart_layout = QVBoxLayout()
-        chart_layout.addWidget(price_chart_widget)
+        chart_layout.addWidget(self.price_chart_widget)
         chart_layout.addWidget(sma_chart_widget)
 
         # Wrap in a frame
@@ -210,20 +210,53 @@ class BinanceTab(QWidget):
 
     def create_price_chart(self, data):
         """Create a Plotly chart for price."""
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=data['timestamps'], y=data['prices'], mode='lines', name='Price'))
-        fig.update_layout(
+        self.price_chart_fig = go.Figure()
+        self.price_chart_fig.add_trace(go.Scatter(x=data['timestamps'], y=data['prices'], mode='lines', name='Price'))
+        self.price_chart_fig.update_layout(
             title="Price Chart",
             xaxis_title="Time",
             yaxis_title="Price",
             template="plotly_dark"
         )
-        fig.update_layout(
+        self.price_chart_fig.update_layout(
             template="plotly_dark",  # Use the dark template
             paper_bgcolor="#1f2235",  # Outer graph area background
             plot_bgcolor="#1f2235"   # Plot area background
         )
-        return fig
+        # Set up QTimer to fetch new data and update the chart
+        self.price_chart_timer = QTimer()
+        self.price_chart_timer.timeout.connect(self.update_price_chart_incremental)
+        self.price_chart_timer.start(60000)  # Update every 1 minute
+        return self.price_chart_fig
+
+    def update_price_chart_incremental(self):
+        """Fetch the latest price point and update the chart."""
+        try:
+            # Fetch the latest data point from the backend
+            new_data = CryptoAnalysis.fetch_crypto_prices_over_time("BNB", 1)
+            new_timestamp = new_data["timestamps"][0]
+            new_price = new_data["prices"][0]
+            # Update the existing trace
+            self.price_chart_fig.data[0].x = list(self.price_chart_fig.data[0].x) + [new_timestamp]
+            self.price_chart_fig.data[0].y = list(self.price_chart_fig.data[0].y) + [new_price]
+            js_code = f"""
+            var graphDiv = document.getElementById('graph');
+            if (graphDiv) {{
+                Plotly.extendTraces(graphDiv, {{
+                    x: [['{new_timestamp}']],
+                    y: [['{new_price}']]
+                }}, [0]);
+                console.log('Running update...')
+            }} else {{
+                console.error('Graph div not found.');
+            }}
+        """
+            
+            # Update the chart without reloading
+            self.price_chart_widget.page().runJavaScript(js_code)
+
+        except Exception as e:
+            print(f"Error updating price chart incrementally: {e}")
 
     def create_sma_chart(self, events):
         """Create a Plotly chart for SMA and events."""
@@ -255,6 +288,7 @@ class BinanceTab(QWidget):
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
                 <style>
                     html, body {{
                         margin: 0;
@@ -272,24 +306,33 @@ class BinanceTab(QWidget):
                 </style>
             </head>
             <body>
-                <div id="graph">{html_content}</div>
+                <div id="graph"></div>
                 <script>
+                    // Reference the graph container
+                    var graphDiv = document.getElementById('graph');
+
+                    // Convert Python data to JavaScript
+                    const data = {json.dumps(json.loads(fig.to_json())['data'])};
+                    const layout = {json.dumps(json.loads(fig.to_json())['layout'])};
+
+                    // Safely render or update the chart
+                    if (typeof Plotly !== "undefined" && graphDiv) {{
+                        Plotly.react(graphDiv, data, layout);
+                    }}
+
                     // Adjust chart size dynamically
                     window.addEventListener('resize', () => {{
-                        const graphs = document.querySelectorAll('.plotly-graph-div');
-                        graphs.forEach(graph => {{
-                            Plotly.relayout(graph, {{
-                                width: window.innerWidth,
-                                height: window.innerHeight
-                            }});
-                        }});
-                    }});
+                        Plotly.relayout(graphDiv, {{
+                        width: window.innerWidth,
+                        height: window.innerHeight
+                }});
+        }});
                     // Trigger resize on load
                     window.dispatchEvent(new Event('resize'));
                 </script>
             </body>
             </html>
-            """
+        """
         webview = QWebEngineView()
         webview.setAttribute(Qt.WA_TranslucentBackground, True)
         webview.setStyleSheet("background: transparent;")

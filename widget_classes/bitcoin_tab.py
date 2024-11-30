@@ -1,15 +1,16 @@
 import pandas as pd
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem,QHBoxLayout, QFrame,QHeaderView
+    QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QHBoxLayout, QFrame, QHeaderView
 )
-from PyQt5.QtGui import QFont,QPixmap
-from PyQt5.QtCore import Qt
-from PyQt5.QtWebEngineWidgets import QWebEngineView
+from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtCore import Qt,QTimer
+from PyQt5.QtWebEngineWidgets import QWebEngineView,QWebEngineSettings
 from widget_classes.helper import Helper
 from backend.crypto_page.crypto_analysis import CryptoAnalysis
 from backend.crypto_page.sentiment_analysis import SentimentAnalysis
 import plotly.io as pio
 import plotly.graph_objects as go
+import json
 
 
 class BitcoinTab(QWidget):
@@ -32,7 +33,8 @@ class BitcoinTab(QWidget):
     def create_pie_chart_card(self):
         """Create a card with a pie chart."""
         card = QFrame()
-        card.setStyleSheet("background-color: #1f2235; border-radius: 10px; border: 1px solid #00bfa6; padding: 10px;")
+        card.setStyleSheet(
+            "background-color: #1f2235; border-radius: 10px; border: 1px solid #00bfa6; padding: 10px;")
 
         layout = QVBoxLayout()
         layout.setContentsMargins(5, 5, 5, 5)
@@ -55,15 +57,18 @@ class BitcoinTab(QWidget):
     def create_pie_chart(self):
         # get data from backend
         sentiment_analysis = SentimentAnalysis(1)
-        sentiment_data = sentiment_analysis.calculate_sentiment_distribution(coin_name="BTC")
+        sentiment_data = sentiment_analysis.calculate_sentiment_distribution(
+            coin_name="BTC")
         """Generate a pie chart using Plotly and return it as a QWebEngineView."""
         # Example data
         labels = ['Positive', 'Negative', 'Neutral']
-        values = [sentiment_data["positive"], sentiment_data["negative"], sentiment_data["neutral"]]
+        values = [sentiment_data["positive"],
+                  sentiment_data["negative"], sentiment_data["neutral"]]
         colors = ['#00bfa6', '#ff6f61', '#ffbb33']
 
         # Create Plotly pie chart
-        fig = go.Figure(data=[go.Pie(labels=labels, values=values, marker=dict(colors=colors))])
+        fig = go.Figure(
+            data=[go.Pie(labels=labels, values=values, marker=dict(colors=colors))])
         fig.update_layout(
             template="plotly_dark",
             paper_bgcolor="#1f2235",
@@ -73,7 +78,7 @@ class BitcoinTab(QWidget):
 
         # Convert Plotly figure to HTML and render it in QWebEngineView
         chart_html = fig.to_html(include_plotlyjs='cdn')
-        
+
         custom_html = f"""
             <!DOCTYPE html>
             <html lang="en">
@@ -143,7 +148,8 @@ class BitcoinTab(QWidget):
     def create_metric_card(self, title, value):
         """Create a unified metric card with the main background color."""
         card = QFrame()
-        card.setStyleSheet("background-color: #1f2235; border-radius: 10px; border: 1px solid #00bfa6; padding: 10px;")
+        card.setStyleSheet(
+            "background-color: #1f2235; border-radius: 10px; border: 1px solid #00bfa6; padding: 10px;")
 
         layout = QVBoxLayout()
         layout.setContentsMargins(5, 5, 5, 5)
@@ -188,11 +194,11 @@ class BitcoinTab(QWidget):
         sma_fig = self.create_sma_chart(events)    # SMA chart from events_df
 
         # Create PyQt widgets for the charts
-        price_chart_widget = self.display_interactive_chart(price_fig)
+        self.price_chart_widget = self.display_interactive_chart(price_fig)
         sma_chart_widget = self.display_interactive_chart(sma_fig)
         # Create a layout to hold both charts
         chart_layout = QVBoxLayout()
-        chart_layout.addWidget(price_chart_widget)
+        chart_layout.addWidget(self.price_chart_widget)
         chart_layout.addWidget(sma_chart_widget)
 
         # Wrap in a frame
@@ -209,26 +215,63 @@ class BitcoinTab(QWidget):
 
     def create_price_chart(self, data):
         """Create a Plotly chart for price."""
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=data['timestamps'], y=data['prices'], mode='lines', name='Price'))
-        fig.update_layout(
+        self.price_chart_fig = go.Figure()
+        self.price_chart_fig.add_trace(go.Scatter(
+            x=data['timestamps'], y=data['prices'], mode='lines', name='Price'))
+        self.price_chart_fig.update_layout(
             title="Price Chart",
             xaxis_title="Time",
             yaxis_title="Price",
             template="plotly_dark"
         )
-        fig.update_layout(
+        self.price_chart_fig.update_layout(
             template="plotly_dark",  # Use the dark template
             paper_bgcolor="#1f2235",  # Outer graph area background
             plot_bgcolor="#1f2235"   # Plot area background
         )
-        return fig
+        # Set up QTimer to fetch new data and update the chart
+        self.price_chart_timer = QTimer()
+        self.price_chart_timer.timeout.connect(self.update_price_chart_incremental)
+        self.price_chart_timer.start(60000)  # Update every 1 minute
+        return self.price_chart_fig
+    
+    def update_price_chart_incremental(self):
+        """Fetch the latest price point and update the chart."""
+        try:
+            # Fetch the latest data point from the backend
+            new_data = CryptoAnalysis.fetch_crypto_prices_over_time("BTC", 1)
+            new_timestamp = new_data["timestamps"][0]
+            new_price = new_data["prices"][0]
+            # Update the existing trace
+            self.price_chart_fig.data[0].x = list(self.price_chart_fig.data[0].x) + [new_timestamp]
+            self.price_chart_fig.data[0].y = list(self.price_chart_fig.data[0].y) + [new_price]
+            js_code = f"""
+            var graphDiv = document.getElementById('graph');
+            if (graphDiv) {{
+                Plotly.extendTraces(graphDiv, {{
+                    x: [['{new_timestamp}']],
+                    y: [['{new_price}']]
+                }}, [0]);
+                console.log('Running update...')
+            }} else {{
+                console.error('Graph div not found.');
+            }}
+        """
+            
+            # Update the chart without reloading
+            self.price_chart_widget.page().runJavaScript(js_code)
+
+        except Exception as e:
+            print(f"Error updating price chart incrementally: {e}")
+
 
     def create_sma_chart(self, events):
         """Create a Plotly chart for SMA and events."""
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=events['timestamps'], y=events['SMA'], mode='lines', name='10-Day SMA', line=dict(dash='dash',width=1)))
-        fig.add_trace(go.Scatter(x=events['timestamps'], y=events['EMA'], mode='lines', name='20-Day SMA', line=dict(dash='dot')))
+        fig.add_trace(go.Scatter(x=events['timestamps'], y=events['SMA'],
+                      mode='lines', name='10-Day SMA', line=dict(dash='dash', width=1)))
+        fig.add_trace(go.Scatter(x=events['timestamps'], y=events['EMA'],
+                      mode='lines', name='20-Day SMA', line=dict(dash='dot')))
         fig.update_layout(
             title="SMA and Important Events",
             xaxis_title="Time",
@@ -245,8 +288,6 @@ class BitcoinTab(QWidget):
     def display_interactive_chart(self, fig):
         """Display an interactive Plotly chart."""
         # This function assumes you are using Plotly to embed the chart in a PyQt widget.
-        # The implementation will depend on how you are embedding the chart.
-        html_content = pio.to_html(fig, full_html=False,include_plotlyjs='cdn')
         # Embed the HTML with dynamic resizing
         custom_html = f"""
             <!DOCTYPE html>
@@ -254,6 +295,7 @@ class BitcoinTab(QWidget):
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
                 <style>
                     html, body {{
                         margin: 0;
@@ -271,24 +313,34 @@ class BitcoinTab(QWidget):
                 </style>
             </head>
             <body>
-                <div id="graph">{html_content}</div>
+                <div id="graph"></div>
                 <script>
+                    // Reference the graph container
+                    var graphDiv = document.getElementById('graph');
+
+                    // Convert Python data to JavaScript
+                    const data = {json.dumps(json.loads(fig.to_json())['data'])};
+                    const layout = {json.dumps(json.loads(fig.to_json())['layout'])};
+
+                    // Safely render or update the chart
+                    if (typeof Plotly !== "undefined" && graphDiv) {{
+                        Plotly.react(graphDiv, data, layout);
+                    }}
+
                     // Adjust chart size dynamically
                     window.addEventListener('resize', () => {{
-                        const graphs = document.querySelectorAll('.plotly-graph-div');
-                        graphs.forEach(graph => {{
-                            Plotly.relayout(graph, {{
-                                width: window.innerWidth,
-                                height: window.innerHeight
-                            }});
-                        }});
-                    }});
+                        Plotly.relayout(graphDiv, {{
+                        width: window.innerWidth,
+                        height: window.innerHeight
+                }});
+        }});
                     // Trigger resize on load
                     window.dispatchEvent(new Event('resize'));
                 </script>
             </body>
             </html>
-            """
+        """
+
         webview = QWebEngineView()
         webview.setAttribute(Qt.WA_TranslucentBackground, True)
         webview.setStyleSheet("background: transparent;")
@@ -322,18 +374,21 @@ class BitcoinTab(QWidget):
         """Create a QLabel with a simple icon for sentiment analysis."""
         sentiment_icon = QLabel()
         sentiment_icon.setAlignment(Qt.AlignCenter)
-        sentiment_icon.setStyleSheet("background-color: #1a1b2f; padding: 10px")
+        sentiment_icon.setStyleSheet(
+            "background-color: #1a1b2f; padding: 10px")
 
         # Load a simple icon
         path = Helper.get_current_icon_directory()
-        pixmap = QPixmap(f"{path}\\icons8-bitcoin.png")  # Replace with the path to your icon file
-        sentiment_icon.setPixmap(pixmap.scaled(50, 50, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        # Replace with the path to your icon file
+        pixmap = QPixmap(f"{path}\\icons8-bitcoin.png")
+        sentiment_icon.setPixmap(pixmap.scaled(
+            50, 50, Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
         return sentiment_icon
 
     def create_correlation_matrix(self):
         # get data from backend
-        data = CryptoAnalysis.get_correlation_matrix(["BTC","ETH","BNB"])
+        data = CryptoAnalysis.get_correlation_matrix(["BTC", "ETH", "BNB"])
         """Create and return a correlation matrix table."""
         correlation_matrix = self.create_table_widget(
             rows=3,
@@ -401,7 +456,8 @@ class BitcoinTab(QWidget):
             for col in range(cols):
                 value = data[row][col]
                 # Check if the value is numeric, format it if it is
-                item_text = f"{value:.2f}" if isinstance(value, (int, float)) else str(value)
+                item_text = f"{value:.2f}" if isinstance(
+                    value, (int, float)) else str(value)
                 item = QTableWidgetItem(item_text)
                 item.setTextAlignment(Qt.AlignCenter)
                 table.setItem(row, col, item)
@@ -429,10 +485,10 @@ class BitcoinTab(QWidget):
         """Adjust the size of a QTextEdit widget based on its content."""
         # Get the height of the document
         doc_height = text_edit.document().size().height()
-        
+
         # Add some padding for aesthetic purposes
-        total_height = int(doc_height + text_edit.contentsMargins().top() + text_edit.contentsMargins().bottom() + 80)
+        total_height = int(doc_height + text_edit.contentsMargins().top() +
+                           text_edit.contentsMargins().bottom() + 80)
 
         # Set the fixed height of the widget based on content
         text_edit.setFixedHeight(total_height)
-

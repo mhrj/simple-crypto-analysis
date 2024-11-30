@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QTextEdit, QHBoxLayout, QFrame
 )
 from PyQt5.QtGui import QFont, QColor
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt,QTimer
 from widget_classes import OnboardingWidget
 from backend.home.crypto_market import CryptoMarket
 from backend.home.crypto_market_data import CryptoMarketData
@@ -100,12 +100,12 @@ class HomeTab(QWidget):
             "font-size: 18px; font-weight: bold; color: #ffdd00;")  # Gold text
 
         # Create table and set headers
-        summary_table = QTableWidget(3, 6)
-        summary_table.setHorizontalHeaderLabels(
+        self.summary_table = QTableWidget(3, 6)
+        self.summary_table.setHorizontalHeaderLabels(
             ["Coin", "Current Price", "24h Change", "Market Cap", "24h Volume", "Circulating Supply"])
 
         # Update background to navy blue and style headers
-        summary_table.setStyleSheet("""
+        self.summary_table.setStyleSheet("""
             QTableWidget {
                 background-color: #1a1b2f;
                 color: white;
@@ -159,29 +159,52 @@ class HomeTab(QWidget):
                         # Red for negative change
                         item.setForeground(QColor("#ff004d"))
                 item.setFont(QFont("Arial", 10))
-                summary_table.setItem(row, col, item)
+                self.summary_table.setItem(row, col, item)
 
         # Resize rows to fit content
-        summary_table.resizeRowsToContents()
+        self.summary_table.resizeRowsToContents()
 
         # Calculate the total height of the table to fit the content
-        total_height = summary_table.horizontalHeader().height()
-        for row in range(summary_table.rowCount()):
-            total_height += summary_table.rowHeight(row)
+        total_height = self.summary_table.horizontalHeader().height()
+        for row in range(self.summary_table.rowCount()):
+            total_height += self.summary_table.rowHeight(row)
 
         # Set the table's height to the calculated value
-        summary_table.setFixedHeight(total_height)
+        self.summary_table.setFixedHeight(total_height)
 
         # Resize columns to fit content and stretch last column
-        summary_table.resizeColumnsToContents()
-        summary_table.horizontalHeader().setStretchLastSection(
+        self.summary_table.resizeColumnsToContents()
+        self.summary_table.horizontalHeader().setStretchLastSection(
             True)  # Make last column stretchable
 
         # Remove scrollbars
-        summary_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        summary_table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.summary_table.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.summary_table.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        
+        # Set up a QTimer to update prices every minute
+        self.price_update_timer = QTimer()
+        self.price_update_timer.timeout.connect(self.update_prices)
+        self.price_update_timer.start(60000)  # 1 minute = 60000 ms
 
-        return summary_label, summary_table
+        return summary_label, self.summary_table
+    
+    def update_prices(self):
+        """Fetch updated prices from the backend and update the table."""
+        try:
+            # Fetch new data
+            crypto = CryptoMarketData()
+            self.current_prices = crypto.fetch_current_prices(["BTC", "ETH", "BNB"])
+
+            # Update the Current Price column
+            for row, coin in enumerate(["BTC", "ETH", "BNB"]):
+                new_price = f"${self.current_prices[coin]['current_price']}"
+                item = QTableWidgetItem(new_price)
+                item.setFont(QFont("Arial", 10))
+                item.setForeground(QColor("white"))
+                self.summary_table.setItem(row, 1, item)  # Column 1 is "Current Price"
+
+        except Exception as e:
+            print(f"Error updating prices: {e}")
 
     def create_risk_layout(self):
         return

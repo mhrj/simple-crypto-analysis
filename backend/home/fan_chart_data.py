@@ -1,76 +1,71 @@
 import pyRserve
-import os
-import sys
-parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-sys.path.append(parent_dir)
-from helpers import get_request, convert_timestamps_to_dates
+from typing import Dict, List
+import helpers
 from constants import CRYPTOCOMPARE_BASE_URL
 
 class CryptoFanChartGenerator:
     """
-    Class to generate historical and fan chart data for cryptocurrencies.
+    Provides functionalities for generating fan charts and analyzing cryptocurrency data.
     """
 
-    def __init__(self, currency="USD"):
+    @staticmethod
+    def _fetch_historical_data(coin: str, currency: str = "USD", days: int = 30) -> Dict[str, List[float]]:
         """
-        Initialize the generator with default coin and currency.
+        Fetches historical data for a cryptocurrency.
 
         Args:
-            coin (str): Cryptocurrency symbol (default: "BTC").
-            currency (str): Fiat currency symbol (default: "USD").
-        """
-        self.currency = currency
-
-    def fetch_historical_data(self, coin="BTC", days=30):
-        """
-        Fetch historical data for the cryptocurrency.
-
-        Args:
-            days (int): Number of past days to fetch (default: 30).
+            coin (str): Cryptocurrency symbol (e.g., "BTC").
+            currency (str): Fiat currency symbol (default is "USD").
+            days (int): Number of days of historical data to fetch.
 
         Returns:
-            dict: Contains:
-                - "timestamps": List of historical timestamps.
-                - "close": List of historical closing prices.
-                - "returns": List of daily returns (log-returns).
+            Dict: Contains historical timestamps, close prices, and log returns.
         """
         url = f"{CRYPTOCOMPARE_BASE_URL}/v2/histoday"
-        params = {"fsym": coin, "tsym": self.currency, "limit": days - 1}
-        response = get_request(url, params=params)
+        params = {
+            "fsym": coin.upper(),
+            "tsym": currency.upper(),
+            "limit": days - 1,
+        }
+        data = helpers.get_request(url, params)
 
-        data = response["Data"]["Data"]
-        timestamps = [item["time"] for item in data]
-        close_prices = [item["close"] for item in data]
-        returns = [(close_prices[i + 1] - close_prices[i]) / close_prices[i] for i in range(len(close_prices) - 1)]
+        if data.get("Response") == "Success":
+            historical_data = data["Data"]["Data"]
+            timestamps = [entry["time"] for entry in historical_data]
+            close_prices = [entry["close"] for entry in historical_data]
+            returns = [(close_prices[i + 1] - close_prices[i]) / close_prices[i] for i in range(len(close_prices) - 1)]
+            return {"timestamps": timestamps, "close": close_prices, "returns": returns}
 
-        return {"timestamps": timestamps, "close": close_prices, "returns": returns}
+        raise RuntimeError(f"Error fetching historical data: {data.get('Message', 'Unknown error')}")
 
-    def generate_fan_chart(self, coin="BTC", historical_days=30, prediction_days=30, simulations=1000):
+    @staticmethod
+    def generate_fan_chart(coin: str, currency: str = "USD", historical_days: int = 30, prediction_days: int = 30,
+                           simulations: int = 1000) -> Dict:
         """
-        Generate fan chart data combining historical prices and Monte Carlo predictions.
+        Generate fan chart data based on historical and simulated data.
 
         Args:
-            historical_days (int): Number of past days to include (default: 30).
-            prediction_days (int): Number of future days to predict (default: 30).
-            simulations (int): Number of Monte Carlo simulations (default: 1000).
+            coin (str): Cryptocurrency symbol (e.g., "BTC").
+            currency (str): Fiat currency symbol (default is "USD").
+            historical_days (int): Number of past days to include.
+            prediction_days (int): Number of future days to predict.
+            simulations (int): Number of Monte Carlo simulations.
 
         Returns:
-            dict: Contains:
-                - "cryptocurrency": Coin name.
-                - "actual_data": Historical data with timestamps and values.
-                - "projection_data": Predicted data with timestamps, mean, and confidence intervals.
+            Dict: Fan chart data including historical and projection data.
         """
-        # Fetch historical data
-        historical_data = self.fetch_historical_data(historical_days)
+        historical_data = CryptoFanChartGenerator._fetch_historical_data(coin, currency, historical_days)
         timestamps = historical_data["timestamps"]
         close_prices = historical_data["close"]
+        returns = historical_data["returns"]
+
+        if not close_prices:
+            raise ValueError("Insufficient historical data for fan chart generation.")
+
         initial_price = close_prices[-1]
+        mu = sum(returns) / len(returns)  # Mean log-return
+        sigma = (sum([(x - mu) ** 2 for x in returns]) / len(returns)) ** 0.5  # Standard deviation
 
-        # Calculate historical returns for mu and sigma
-        mu = sum(historical_data["returns"]) / len(historical_data["returns"])  # Mean return
-        sigma = (sum([(x - mu) ** 2 for x in historical_data["returns"]]) / len(historical_data["returns"])) ** 0.5  # Std. deviation
-
-        # Connect to Rserve
         conn = pyRserve.connect("localhost", 6312)
         try:
             # Send parameters to R
@@ -80,7 +75,6 @@ class CryptoFanChartGenerator:
             conn.r.days = prediction_days
             conn.r.simulations = simulations
 
-            # Perform Monte Carlo simulation in R
             conn.r('''
             simulate_prices <- function(initial_price, mu, sigma, days, simulations) {
                 paths <- matrix(0, nrow = simulations, ncol = days)
@@ -92,41 +86,35 @@ class CryptoFanChartGenerator:
                 return(paths)
             }
             paths <- simulate_prices(initial_price, mu, sigma, days, simulations)
+            percentiles <- apply(paths, 2, function(x) quantile(x, probs = c(0.1, 0.5, 0.9)))
             ''')
-            
-            # Calculate percentiles for each day
-            conn.r('percentiles <- apply(paths, 2, function(x) quantile(x, probs = c(0.1, 0.5, 0.9)))')
-            percentiles = conn.r('percentiles')
 
-            # Prepare projection timestamps
+            percentiles = conn.r('percentiles')
             projection_timestamps = [timestamps[-1] + i * 86400 for i in range(1, prediction_days + 1)]
 
-            # Prepare result in specified format
-            result = {
+            return {
                 "cryptocurrency": coin,
                 "actual_data": {
-                    "timestamps": convert_timestamps_to_dates(timestamps),
-                    "values": close_prices
+                    "timestamps": CryptoFanChartGenerator._convert_timestamps_to_dates(timestamps),
+                    "values": close_prices,
                 },
                 "projection_data": {
-                    "timestamps": convert_timestamps_to_dates(projection_timestamps),
+                    "timestamps": CryptoFanChartGenerator._convert_timestamps_to_dates(projection_timestamps),
                     "mean": [round(v, 2) for v in percentiles[1]],
                     "confidence_intervals": [
                         {
                             "ci": 0.5,
                             "upper": [round(v, 2) for v in percentiles[2]],
-                            "lower": [round(v, 2) for v in percentiles[0]]
+                            "lower": [round(v, 2) for v in percentiles[0]],
                         },
                         {
                             "ci": 1.0,
                             "upper": [round(v + 0.5, 2) for v in percentiles[2]],
-                            "lower": [round(v - 0.5, 2) for v in percentiles[0]]
-                        }
-                    ]
-                }
+                            "lower": [round(v - 0.5, 2) for v in percentiles[0]],
+                        },
+                    ],
+                },
             }
-            return result
 
         finally:
-            # Close Rserve connection
             conn.close()

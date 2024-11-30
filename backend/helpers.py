@@ -45,3 +45,13 @@ def convert_timestamps_to_clock(timestamps: list) -> list:
         datetime.utcfromtimestamp(ts).strftime('%H:%M') for ts in timestamps
     ]
     return clock_times
+
+def convert_timestamps_to_dates(timestamps):
+    """
+    Convert a list of UNIX timestamps to 'MM-DD' format.
+
+    :param timestamps: List of UNIX timestamps.
+    :return: List of formatted dates as strings in 'MM-DD' format.
+    """
+    formatted_dates = [datetime.utcfromtimestamp(ts).strftime('%m-%d') for ts in timestamps]
+    return formatted_dates

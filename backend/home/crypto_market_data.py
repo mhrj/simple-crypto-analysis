@@ -37,7 +37,7 @@ class CryptoMarketData:
             else:
                 prices[coin.upper()] = {
                     "coin": coin.upper(),
-                    "current_price": coin_data.get("PRICE")
+                    "current_price": round(coin_data.get("PRICE"), 2)
                 }
 
         return prices

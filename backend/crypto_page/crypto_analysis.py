@@ -172,9 +172,9 @@ class CryptoAnalysis:
         if response.get("Response") != "Success":
             raise RuntimeError(f"Error fetching data: {response.get('Message', 'Unknown error')}")
         data = response["Data"]["Data"]
-        time_data, price_data = zip(*((entry["time"], entry["close"]) for entry in data))
+        time_data, price_data = zip(*((entry["time"], round(entry["close"], 2)) for entry in data))
         return {"timestamps": helpers.convert_timestamps_to_clock(list(time_data)), 
-                "prices": round(list(price_data, 2))}
+                "prices": list(price_data)}
 
     def calculate_indicators(coin: str, limit_days: int = 100, currency: str = "USD", calculate_for: int = 1,
                             ema_period: int = 14, sma_period: int = 14) -> Union[Dict, None]:

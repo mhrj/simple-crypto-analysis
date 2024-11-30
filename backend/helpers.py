@@ -1,6 +1,7 @@
 import requests
 from typing import Dict
 from datetime import datetime
+import pytz
 
 def get_request(url: str, params: Dict) -> Dict:
     """
@@ -33,16 +34,18 @@ def format_large_number(number: float) -> str:
     
 def convert_timestamps_to_clock(timestamps: list) -> list:
     """
-    Convert a list of UNIX timestamps to their respective clock times in HH:MM format.
+    Convert a list of UNIX timestamps to their respective clock times in HH:MM format in Iran's time zone (IRST).
 
     Args:
         timestamps (list): List of UNIX timestamps.
 
     Returns:
-        list: List of times in HH:MM format.
+        list: List of times in HH:MM format in Iran's time zone.
     """
+    iran_tz = pytz.timezone('Asia/Tehran')  # Define the Iran time zone (IRST)
     clock_times = [
-        datetime.utcfromtimestamp(ts).strftime('%H:%M') for ts in timestamps
+        datetime.fromtimestamp(ts, tz=pytz.utc).astimezone(iran_tz).strftime('%H:%M')
+        for ts in timestamps
     ]
     return clock_times
 

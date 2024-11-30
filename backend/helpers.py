@@ -2,6 +2,7 @@ import requests
 from typing import Dict
 from datetime import datetime
 import pytz
+from persiantools.jdatetime import JalaliDate
 
 def get_request(url: str, params: Dict) -> Dict:
     """
@@ -51,10 +52,12 @@ def convert_timestamps_to_clock(timestamps: list) -> list:
 
 def convert_timestamps_to_dates(timestamps):
     """
-    Convert a list of UNIX timestamps to 'MM-DD' format.
+    Convert a list of UNIX timestamps to dates in 'MM-DD' format in the Persian calendar.
 
     :param timestamps: List of UNIX timestamps.
-    :return: List of formatted dates as strings in 'MM-DD' format.
+    :return: List of formatted Persian calendar dates as strings in 'MM-DD' format.
     """
-    formatted_dates = [datetime.utcfromtimestamp(ts).strftime('%m-%d') for ts in timestamps]
+    formatted_dates = [
+        JalaliDate(datetime.utcfromtimestamp(ts)).strftime('%m-%d') for ts in timestamps
+    ]
     return formatted_dates

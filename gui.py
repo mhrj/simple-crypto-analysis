@@ -50,7 +50,7 @@ class CryptoApp(QMainWindow):
         self.tabs.addTab(self.binance_tab, "Binance Coin")
         
         self.online_R_interaction_tab = online_R_interaction.OnlineRInteraction()
-        self.tabs.addTab(self.online_R_interaction_tab, "Portfolio Notifications")
+        self.tabs.addTab(self.online_R_interaction_tab, "R_Notifications")
         
         
         # Initialize variables for dragging

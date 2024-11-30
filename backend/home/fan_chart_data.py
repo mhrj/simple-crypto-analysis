@@ -99,11 +99,11 @@ class CryptoFanChartGenerator:
             return {
                 "cryptocurrency": coin,
                 "actual_data": {
-                    "timestamps": CryptoFanChartGenerator._convert_timestamps_to_dates(timestamps),
+                    "timestamps": helpers.convert_timestamps_to_dates(timestamps),
                     "values": close_prices,
                 },
                 "projection_data": {
-                    "timestamps": CryptoFanChartGenerator._convert_timestamps_to_dates(projection_timestamps),
+                    "timestamps": helpers.convert_timestamps_to_dates(projection_timestamps),
                     "mean": [round(v, 2) for v in percentiles[1]],
                     "confidence_intervals": [
                         {

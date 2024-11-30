@@ -1,10 +1,8 @@
-import sys
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QTextEdit, QHBoxLayout, QFrame, QSizePolicy
+    QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QTextEdit, QHBoxLayout, QFrame
 )
-from PyQt5.QtChart import QChart, QChartView, QPieSeries, QPieSlice
-from PyQt5.QtGui import QPainter, QFont, QColor, QBrush
-from PyQt5.QtCore import Qt, QMargins
+from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtCore import Qt
 from widget_classes import OnboardingWidget
 from backend.home.crypto_market import CryptoMarket
 from backend.home.crypto_market_data import CryptoMarketData
@@ -49,7 +47,7 @@ class HomeTab(QWidget):
         self.setLayout(layout)
 
     def create_metrics_layout(self):
-        #get data from backend
+        # get data from backend
         crypto = CryptoMarket()
         data = crypto.fetch_market_summary()
         market_cap = data["market_cap_usd"]
@@ -92,7 +90,7 @@ class HomeTab(QWidget):
         return card
 
     def create_summary_table(self):
-        #get data from backend
+        # get data from backend
         crypto_data = CryptoMarketData()
         data = crypto_data.fetch_crypto_data(["BTC","ETH","BNB"])
         """Create the cryptocurrency summary table without scroll bars and with dynamic sizing."""
@@ -189,7 +187,7 @@ class HomeTab(QWidget):
         return
 
     def create_news_feed(self):
-        #get data from backend
+        # get data from backend
         news_manager = CryptoNewsManager()
         data = news_manager.fetch_latest_crypto_news()
         """Create news feed section."""

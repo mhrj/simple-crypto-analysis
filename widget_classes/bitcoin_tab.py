@@ -1,6 +1,6 @@
 import pandas as pd
 from PyQt5.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem, QTextEdit, QHBoxLayout, QFrame,QHeaderView
+    QWidget, QVBoxLayout, QLabel, QTableWidget, QTableWidgetItem,QHBoxLayout, QFrame,QHeaderView
 )
 from PyQt5.QtGui import QFont,QPixmap
 from PyQt5.QtCore import Qt
@@ -53,7 +53,7 @@ class BitcoinTab(QWidget):
         return card
 
     def create_pie_chart(self):
-        # fetch data from backend
+        # get data from backend
         sentiment_analysis = SentimentAnalysis(1)
         sentiment_data = sentiment_analysis.calculate_sentiment_distribution(coin_name="BTC")
         """Generate a pie chart using Plotly and return it as a QWebEngineView."""
@@ -124,7 +124,7 @@ class BitcoinTab(QWidget):
         return webview
 
     def create_summary_widget(self):
-        #fetch price data from backend
+        # get price data from backend
         price_data = CryptoAnalysis.fetch_crypto_price_data("BTC")
         highest = price_data["highest"]
         lowest = price_data["lowest"]
@@ -165,9 +165,8 @@ class BitcoinTab(QWidget):
         return card
 
     def create_r_data_direct(self):
-        #fetch data from backend
+        # get data from backend
         data_dict_prices = CryptoAnalysis.fetch_crypto_prices_over_time("BTC")
-        # Convert result to dictionaries manually
         data_dict_smas = CryptoAnalysis.calculate_indicators("BTC")
 
         # Create pandas DataFrames from dictionaries
@@ -306,7 +305,7 @@ class BitcoinTab(QWidget):
         return bottom_layout
 
     def create_daily_returns_table(self):
-        #get data from backend
+        # get data from backend
         data_BTC = CryptoAnalysis.calculate_daily_growth("BTC")
         data_index_zero = data_BTC["daily_growth"][0]
         data_index_one = data_BTC["daily_growth"][1]

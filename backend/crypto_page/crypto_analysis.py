@@ -160,21 +160,36 @@ class CryptoAnalysis:
     def fetch_crypto_prices_over_time(coin: str, limit: int = 60, currency: str = "USD") -> Dict:
         """
         Fetches price data for a given cryptocurrency over a time period.
+
+        Parameters:
+            coin (str): The cryptocurrency symbol (e.g., 'BTC', 'ETH').
+            limit (int): The number of data points to fetch. Default is 60.
+            currency (str): The currency symbol (e.g., 'USD'). Default is 'USD'.
+
+        Returns:
+            Dict: A dictionary containing 'timestamps' and 'prices'.
         """
         url = f"{CRYPTOCOMPARE_BASE_URL}/v2/histominute"
         params = {
             "fsym": coin.upper(),
             "tsym": currency.upper(),
             "limit": limit,
-            "api_key": CRYPTOCOMPARE_API_KEY
+            "api_key": CRYPTOCOMPARE_API_KEY,
         }
         response = helpers.get_request(url, params)
         if response.get("Response") != "Success":
             raise RuntimeError(f"Error fetching data: {response.get('Message', 'Unknown error')}")
+        
         data = response["Data"]["Data"]
-        time_data, price_data = zip(*((entry["time"], round(entry["close"], 2)) for entry in data))
-        return {"timestamps": helpers.convert_timestamps_to_clock(list(time_data)), 
-                "prices": list(price_data)}
+        
+        # Ensure only exact number of entries specified by the limit
+        trimmed_data = data[:limit]  # This trims the data to the exact limit if necessary
+        
+        time_data, price_data = zip(*((entry["time"], round(entry["close"], 2)) for entry in trimmed_data))
+        return {
+            "timestamps": helpers.convert_timestamps_to_clock(list(time_data)), 
+            "prices": list(price_data)
+        }
 
     def calculate_indicators(coin: str, limit_days: int = 100, currency: str = "USD", calculate_for: int = 1,
                             ema_period: int = 14, sma_period: int = 14) -> Union[Dict, None]:

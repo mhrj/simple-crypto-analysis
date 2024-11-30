@@ -1,4 +1,8 @@
 import pyRserve
+import os
+import sys
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(parent_dir)
 from helpers import get_request, convert_timestamps_to_dates
 from constants import CRYPTOCOMPARE_BASE_URL
 

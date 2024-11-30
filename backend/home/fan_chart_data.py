@@ -1,5 +1,9 @@
+import os
+import sys
 import pyRserve
 from typing import Dict, List
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(parent_dir)
 import helpers
 from constants import CRYPTOCOMPARE_BASE_URL
 

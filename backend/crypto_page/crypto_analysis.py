@@ -2,7 +2,7 @@ import os
 import sys
 import pyRserve
 import pandas as pd
-from datetime import datetime
+from datetime import timedelta, datetime
 from typing import Dict, List, Union
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(parent_dir)
@@ -192,9 +192,9 @@ class CryptoAnalysis:
         }
 
     def calculate_indicators(coin: str, limit_days: int = 100, currency: str = "USD", calculate_for: int = 1,
-                            ema_period: int = 14, sma_period: int = 14) -> Union[Dict, None]:
+                         ema_period: int = 14, sma_period: int = 14) -> Union[Dict, None]:
         """
-        Calculate EMA, SMA.
+        Calculate EMA, SMA, and generate timestamps as UNIX timestamps starting from `start_date`.
         """
         try:
             # Fetch historical data for the full range
@@ -206,7 +206,23 @@ class CryptoAnalysis:
 
             # Extract the last `calculate_for` days of data
             data_for_calculation = historical_data[-(calculate_for * 24 * 60):]
-            timestamps = list(range(len(data_for_calculation)))
+
+            # Generate the UNIX timestamps starting from `start_date`
+            today = datetime.today()
+
+            # Calculate the date 100 days ago
+            hundred_days_ago = today - timedelta(days=100)
+
+            # Format the date as "YYYY-MM-DD"
+            start_date = hundred_days_ago.strftime('%Y-%m-%d')
+            start_date_obj = datetime.strptime(start_date, "%Y-%m-%d")
+            timestamps = [
+                int((start_date_obj + timedelta(days=ts - 1)).timestamp())  # Convert each day to UNIX timestamp
+                for ts in range(1, len(data_for_calculation) + 1)
+            ]
+            
+            # Process the timestamps (if you want to format them into a specific format, e.g., MM-DD)
+            formatted_dates = helpers.process_timestamps(timestamps)
 
             # Connect to Rserve and perform calculations
             conn = pyRserve.connect("localhost", 6312)
@@ -228,7 +244,7 @@ class CryptoAnalysis:
 
             # Format results and return
             result = {
-                'timestamps': timestamps,
+                'timestamps': formatted_dates,  # Use the formatted timestamps here
                 'prices': historical_data,
                 'EMA': list(indicators['ema']),
                 'SMA': list(indicators['sma'])
@@ -239,4 +255,3 @@ class CryptoAnalysis:
                 conn.close()
             print(f"Error calculating indicators: {e}")
             return None
-        

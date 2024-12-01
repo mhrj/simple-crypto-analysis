@@ -272,7 +272,11 @@ class EthereumTab(QWidget):
         fig.update_layout(
             template="plotly_dark",  # Use the dark template
             paper_bgcolor="#1f2235",  # Outer graph area background
-            plot_bgcolor="#1f2235"   # Plot area background
+            plot_bgcolor="#1f2235",  # Plot area background
+            xaxis=dict(
+                title="Days",
+                type="category",  # Treat x-axis as categorical data
+            )
         )
         return fig
 

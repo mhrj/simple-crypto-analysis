@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve,QRectF,QPoint
 from PyQt5.QtGui import QPixmap,QPainterPath,QRegion,QPolygon,QColor
 import pyRserve
-from widget_classes import home_tab, bitcoin_tab, ethereum_tab, binance_tab,online_R_interaction
+from widget_classes import home_tab, bitcoin_tab, ethereum_tab, binance_tab
 import os
 
 class CryptoApp(QMainWindow):
@@ -48,9 +48,6 @@ class CryptoApp(QMainWindow):
         
         self.binance_tab = binance_tab.BinanceTab()
         self.tabs.addTab(self.binance_tab, "Binance Coin")
-        
-        self.online_R_interaction_tab = online_R_interaction.OnlineRInteraction()
-        self.tabs.addTab(self.online_R_interaction_tab, "R_Notifications")
         
         
         # Initialize variables for dragging

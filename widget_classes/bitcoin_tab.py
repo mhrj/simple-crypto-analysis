@@ -269,9 +269,9 @@ class BitcoinTab(QWidget):
         """Create a Plotly chart for SMA and events."""
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=events['timestamps'], y=events['SMA'],
-                      mode='lines', name='10-Day SMA', line=dict(dash='dash', width=1)))
+                      mode='lines', name='SMA', line=dict(dash='dash', width=1)))
         fig.add_trace(go.Scatter(x=events['timestamps'], y=events['EMA'],
-                      mode='lines', name='20-Day SMA', line=dict(dash='dot')))
+                      mode='lines', name='EMA', line=dict(dash='dot')))
         fig.update_layout(
             title="SMA and Important Events",
             xaxis_title="Time",

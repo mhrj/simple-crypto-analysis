@@ -163,7 +163,11 @@ class OnboardingWidget(QWidget):
             paper_bgcolor="#1f2235",
             plot_bgcolor="#1f2235",
             margin=dict(l=10, r=10, t=30, b=10),  # Minimize margins
-            showlegend=True
+            showlegend=True,
+            xaxis=dict(
+            title="Days",
+            type="category",  # Treat x-axis as categorical data
+            )
         )
 
         # Generate responsive HTML
@@ -235,29 +239,3 @@ class OnboardingWidget(QWidget):
             else:
                 dot.setStyleSheet("font-size: 24px; color: gray;")
 
-
-#fanchart data ==> generate fan chart
-    # def fetch_crypto_data(crypto_symbol):
-    #     """Fetch fan chart data for a given cryptocurrency from the backend."""
-    #     # Replace with actual backend API call
-    #     response = backend.get_fan_chart_data(crypto_symbol)
-    #     return response  # Assuming the backend sends data in the structure above
-
-
-"""data structure needed to fill the data"""
-
-# {
-#     "cryptocurrency": "Bitcoin",
-#     "actual_data": {
-#         "timestamps": ["2024-11-27 10:00", "2024-11-27 10:01", "2024-11-27 10:02"],
-#         "values": [50000, 50100, 50250]
-#     },
-#     "projection_data": {
-#         "timestamps": ["2024-11-27 10:03", "2024-11-27 10:04", "2024-11-27 10:05"],
-#         "mean": [50300, 50400, 50550],
-#         "confidence_intervals": [
-#             {"ci": 0.5, "upper": [50350, 50450, 50600], "lower": [50250, 50350, 50500]},
-#             {"ci": 1, "upper": [50400, 50500, 50650], "lower": [50200, 50300, 50500]}
-#         ]
-#     }
-# }

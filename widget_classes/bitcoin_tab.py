@@ -276,8 +276,13 @@ class BitcoinTab(QWidget):
             title="SMA and Important Events",
             xaxis_title="Time",
             yaxis_title="SMA/EMA",
-            template="plotly_dark"
+            template="plotly_dark",
+            xaxis=dict(
+                title="Days",
+                type="category",  # Treat x-axis as categorical data
+            )
         )
+        
         fig.update_layout(
             template="plotly_dark",  # Use the dark template
             paper_bgcolor="#1f2235",  # Outer graph area background
